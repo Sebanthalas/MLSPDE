@@ -141,6 +141,7 @@ if __name__ == '__main__':
   mesh      = Mesh(meshname)
   nn        = FacetNormal(mesh)
   All_Train_coeff = []
+  All_Test_coeff  = []
 
   #================================================================
   #  *********** Finite Element spaces ************* #
@@ -167,9 +168,10 @@ if __name__ == '__main__':
   # set the maximum number of training points 
   m_max = args.max_nb_train_points
 
-
-  if args.test_pointset == 'CC_sparse_grid':
-    # create the sparse grid generator
+  #================================================================
+  #  *********** create the sparse grid generator ************* #
+  #================================================================
+  if args.test_pointset == 'CC_sparse_grid': 
     grid = Tasmanian.SparseGrid()
     # generate sparse grid points and weights
     grid.makeGlobalGrid(d, 0, args.SG_level, "level", "clenshaw-curtis")
@@ -186,7 +188,7 @@ if __name__ == '__main__':
 
   elif args.test_pointset == 'uniform_random':
     # get the number of test points
-    m_test = params['num_test_samples']
+    m_test = args.nb_test_points
 
     # generate the points randomly
     y_in_test = 2.0*np.random.rand(d,m_test) - 1.0
@@ -245,9 +247,9 @@ if __name__ == '__main__':
   m_test_check = m_test
 
   if args.train:
-    print('===================================================================')
-    print('                        Beginning training                         ')
-    print('===================================================================')
+    print('       ____________________________________________________________________')
+    print('                                Beginning training                         ')
+    print('       ____________________________________________________________________')
 
     x_in_train = np.transpose(np.random.uniform(-1.0,1.0,(m,d)))
     U = []
@@ -257,10 +259,6 @@ if __name__ == '__main__':
     
     # Generate the training data
     for i in range(m):
-      print('===================================================================')
-      print(' training:             ', i)
-      #print('===================================================================')
-      # record start time
       coeff_each_m = []
       t_start = time.time()
 
@@ -287,16 +285,60 @@ if __name__ == '__main__':
       Tang = derivative(FF, Usol, Utrial)
       solve(FF == 0, Usol, J=Tang)
       uh,Rsigh = Usol.split()
-      plot(uh)
-      filename = 'poisson_nonlinear_gradient'+str(i)+'.png'
-      plt.savefig ( filename )
+      #plot(uh)
+      #filename = 'poisson_nonlinear_gradient'+str(i)+'.png'
+      #plt.savefig ( filename )
       
       num_subspaces = W_trainsol.num_sub_spaces()
       
       for j in range(num_subspaces):
-        print('holo',j)
         coef_one_trial = coeff_extr(j)
         coeff_each_m.append(coef_one_trial)
       All_Train_coeff.append(coeff_each_m)
-      #print(coeff_each_m)
-  print(len(All_Train_coeff[1][1]))
+      norm_L2      = sqrt(assemble((uh)**2*dx)) 
+      norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )  
+      print('====================================================================')
+      print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_train= ', z)
+      print('====================================================================')
+    print('       ____________________________________________________________________')
+    print('                                Beginning testing data                     ')
+    print('       ____________________________________________________________________')
+    print('Generating the testing data m_test=',m_test)
+    for i in range(m_test):
+      coeff_each_m = []
+      z = y_in_test[:,i]
+      string  =  '1/(6.0+(' + str(z[0]) + '*x+' + str(z[1]) + '*y+' + str(z[2]) + '+'+ str(z[3]) +' ))' 
+      a       = Expression(str2exp(string), degree=2, domain=mesh)
+      f       = Constant(0.0)
+      u, Rsig = split(Usol)
+      v, Rtau = TestFunctions(Hh)
+      # *************** Variational forms ***************** #
+      #================================================================
+      # flow equations
+      #================================================================   
+      # Weak formulation  
+      BigA  = a*dot(Rsig,Rtau)*dx
+      BigB1 = u*div(Rtau)*dx
+      BigB2 = v*div(Rsig)*dx
+      F = -f*v*dx
+      G = (Rtau[0]*nn[0]+Rtau[1]*nn[1])*u_ex*u_D[0]*ds
+      #Stiffness matrix
+      FF = BigA + BigB1 + BigB2  - F - G 
+      Tang = derivative(FF, Usol, Utrial)
+      solve(FF == 0, Usol, J=Tang)
+      uh,Rsigh = Usol.split()
+      plot(uh)
+      filename = 'poisson_nonlinear_gradient_test'+str(i)+'.png'
+      plt.savefig ( filename )
+      
+          
+      coeff_each_m = Usol.vector().get_local()
+      All_Test_coeff.append(coeff_each_m)
+
+      norm_L2      = sqrt(assemble((uh)**2*dx)) 
+      norm_Hdiv = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )  
+      print('====================================================================')
+      print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_test= ', z)
+      print('====================================================================')
+
+   

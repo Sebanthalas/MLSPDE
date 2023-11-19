@@ -6,7 +6,8 @@ echo "CONTROL: starting runs on test datasets"
 
 declare -r input_dim=4
 declare -r trainn=1
-declare -r train_pts=2
+declare -r train_pts=1 # change this
+declare -r nb_test_points=2 # change this
 declare -r SCS=0
 declare -r DNN=0
 declare -r run_ID="more_testing_data"
@@ -47,4 +48,4 @@ fi
 
 # pre-generate the testing results 
 #python3 -m cProfile -s time FEM_parametric_PDE_example.py --to --time --things.......
-python3 FEM_parametric_PDE_example.py --example $example --nb_train_points $train_pts --max_nb_train_points $max_nb_train_points --train_pointset $training_ptset --nb_trials 10 --train $trainn --make_plots $make_plots --test_pointset $testing_ptset --quiet 0 --input_dim $input_dim --trial_num 0  --pmax $pmax --SG_level $SG_level   --run_ID $run_ID --DNN 0 --SCS 0 #&
+python3 FEM_parametric_PDE_example.py --example $example --nb_train_points $train_pts --nb_test_points $nb_test_points --max_nb_train_points $max_nb_train_points --train_pointset $training_ptset --nb_trials 10 --train $trainn --make_plots $make_plots --test_pointset $testing_ptset --quiet 0 --input_dim $input_dim --trial_num 0  --pmax $pmax --SG_level $SG_level   --run_ID $run_ID --DNN 0 --SCS 0 #&
