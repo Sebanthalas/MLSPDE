@@ -72,15 +72,7 @@ class MyExpression(UserExpression):
   def value_shape(self):
     return (1,)
 
-default_parameters = {
-    'trial_'           :0,
-    'num_train_samples':1, #20
-    'num_test_samples': 1, #50
-    'mesh_op'         : 2, # choose mesh refiniment, 1,2,3,4. Default=2
-    'FE_degree'       : 1, # Use P1 for 2D or above
-    'example'         : 'other',
-    'input_dim'       : 4
-}
+ 
 #===============================================================
 if __name__ == '__main__': 
   start_time = time.time()
@@ -91,28 +83,27 @@ if __name__ == '__main__':
   parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
   parser.add_argument("--train_pointset", default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
   parser.add_argument("--precision", default = 'double', type = str, help = "Switch for double vs. single precision")
+  parser.add_argument("--problem", default = 'other', type = str, help = "Defines the PDE problem to solve")
+  parser.add_argument("--mesh_num", default = 2, type = int, help = "Defines the refiniment of the mesh, 1,2,3,4 (default mesh number 2)")
   parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
+  parser.add_argument("--FE_degree", default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
   parser.add_argument("--test_pointset", default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
   parser.add_argument("--nb_trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
   parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
   parser.add_argument("--run_ID", type = str, help = "String for naming batch of trials in this run (default timestamp)")
-  #parser.add_argument("--mesh_size", default = 32, type = int, help = "Number of nodes on one side of mesh of square domain (default 32)")
   parser.add_argument("--example", default = 'other', type = str, help = "Example function to use in the PDE (default other)")
   parser.add_argument("--quiet", default = 1, type = int, help = "Switch for verbose output (default 1)")
-  parser.add_argument("--SCS", default = 0, type = int, help = "Run the SCS method (default 1)")
   parser.add_argument("--DNN", default = 0, type = int, help = "Train the DNN (default 1)")
   parser.add_argument("--trial_num", default = 0, type = int, help = "Number for the trial to run (default 0)")
   parser.add_argument("--make_plots", default = 0, type = int, help = "Switch for generating plots (default 0)")
   parser.add_argument("--error_tol", default = "1e-4", type = str, help = "Stopping tolerance for the solvers (default 1e-4)")
-  parser.add_argument("--solver", default = "bregman_fpc", type = str, help = "Solver to use (default breg_fpc)")
   parser.add_argument("--mu_value", type = str, help = "Regularization parameter lambda")
   parser.add_argument("--xi", default = "1e-3", type = str, help = "Regularization parameter lambda")
   parser.add_argument("--pmax", default = 80, type = int, help = "Maximum order p of the polynomial space")
   parser.add_argument("--SG_level", default = 5, type = int, help = "Maximum order p of the polynomial space")
-  #parser.add_argument("--SG_level_1d", default = 10, type = int, help = "Maximum order p of the polynomial space")
   parser.add_argument("--fenics_log_level", default = 30, type = int, help = "Log level for the FEniCS solver (default 30 = WARNING)")
   args = parser.parse_args()
-
+ 
   set_log_level(args.fenics_log_level)
 
   # set the unique run ID used in many places, e.g., directory names for output
@@ -121,9 +112,7 @@ if __name__ == '__main__':
   else:
       unique_run_ID = args.run_ID
   # record the trial number
-  trial  = args.trial_num
-  params = default_parameters
-
+  trial   = args.trial_num
   np_seed = trial
   np.random.seed(np_seed)
 
@@ -135,18 +124,23 @@ if __name__ == '__main__':
 
   # set the input dimension
   d         = args.input_dim
-  nk        = params['mesh_op']
+  nk        = args.mesh_num
   example   = args.example
   meshname  = "meshes/obstac%03g.xml"%nk
   mesh      = Mesh(meshname)
   nn        = FacetNormal(mesh)
   All_Train_coeff = []
   All_Test_coeff  = []
+  _L2unorm_train  = []
+  _H2snorm_train  = []
+  _L2unorm_test   = []
+  _H2snorm_test   = []
+
 
   #================================================================
   #  *********** Finite Element spaces ************* #
   #================================================================
-  deg = params['FE_degree']
+  deg = args.FE_degree  
   Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
   RTv = FiniteElement('RT', mesh.ufl_cell(), deg+1)
   Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
@@ -212,14 +206,14 @@ if __name__ == '__main__':
     error_tol = float(args.error_tol)
 
   # unique key for naming results
-  key = str(m).zfill(6) + '_pnts_%2.2e' % (error_tol) + '_tol_' + args.solver + '_solver' 
+  key = str(m).zfill(6) + '_pnts_%2.2e' % (error_tol) + '_tol_'+str(d)+'_d'
 
   # Save the training and test#
-  scratchdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_example/' + unique_run_ID + '_' + args.example + '/' + key
-  projectdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_example/' + unique_run_ID + '_' + args.example + '/' + key
+  scratchdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/' + key
+  projectdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example 
   result_folder = scratchdir
-  scratch_folder = scratchdir
-  run_root_folder = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_example/' + unique_run_ID + '_' + args.example
+  scratch_folder = projectdir
+  run_root_folder = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example+ '/' + key
 
   if not os.path.exists(result_folder):
       try:
@@ -237,10 +231,11 @@ if __name__ == '__main__':
   print('===================================================================')
   print('Saving results to', result_folder)
   print('===================================================================')
-
+ 
+  
   run_data_filename  = result_folder + '/trial_' + str(trial) + '_run_data.mat'
   results_filename   = result_folder + '/trial_' + str(trial) + '_results.mat'
-  test_data_filename = run_root_folder + '/' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
+  test_data_filename = run_root_folder + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
   test_results_filename = result_folder + '/trial_' + str(trial) + '_test_results.mat'
 
   # See if this is usefl later on
@@ -251,7 +246,7 @@ if __name__ == '__main__':
     print('                                Beginning training                         ')
     print('       ____________________________________________________________________')
 
-    x_in_train = np.transpose(np.random.uniform(-1.0,1.0,(m,d)))
+    y_in_train = np.transpose(np.random.uniform(-1.0,1.0,(m,d)))
     U = []
     print('Using uniform random training points with m =', m)
     K = 0
@@ -263,7 +258,7 @@ if __name__ == '__main__':
       t_start = time.time()
 
       # get the training data inputs 
-      z = x_in_train[:,i]
+      z = y_in_train[:,i]
       #string  = 1/150
       string  =  '1/(6.0+(' + str(z[0]) + '*x+' + str(z[1]) + '*y+' + str(z[2]) + '+'+ str(z[3]) +' ))' 
       a       = Expression(str2exp(string), degree=2, domain=mesh)
@@ -296,10 +291,37 @@ if __name__ == '__main__':
         coeff_each_m.append(coef_one_trial)
       All_Train_coeff.append(coeff_each_m)
       norm_L2      = sqrt(assemble((uh)**2*dx)) 
-      norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )  
+      norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )
+      _L2unorm_train.append(norm_L2)
+      _H2snorm_train.append(norm_Hdiv)
+      
       print('====================================================================')
       print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_train= ', z)
       print('====================================================================')
+    run_data = {}
+    run_data['d']              = d
+    run_data['K']              = K
+    run_data['m_max']          = m_max
+    run_data['m_train']        = m
+    run_data['y_in_train_data']= y_in_train
+    run_data['mesh_op']        = nk
+    run_data['FE_degree']      = deg
+    run_data['All_Train_coeff'] = All_Train_coeff
+    run_data['_L2unorm_train']       = _L2unorm_train
+    run_data['_H2snorm_train']       = _H2snorm_train
+    run_data['fenics_mesh_coords']       = np.array(mesh.coordinates())
+    run_data['fenics_mesh_cells']        = np.array(mesh.cells())
+    run_data['fenics_mesh_num_cells']    = np.array(mesh.num_cells())
+    run_data['fenics_mesh_num_edges']    = np.array(mesh.num_edges())
+    run_data['fenics_mesh_num_vertices'] = np.array(mesh.num_vertices())
+    run_data['fenics_mesh_hmax']         = np.array(mesh.hmax())
+    run_data['fenics_mesh_hmin']         = np.array(mesh.hmin())
+    run_data['fenics_mesh_rmax']         = np.array(mesh.rmax())
+    run_data['fenics_mesh_rmin']         = np.array(mesh.rmin())
+    sio.savemat(run_data_filename, run_data)
+    print('saved in:',run_data_filename)
+  
+  else:
     print('       ____________________________________________________________________')
     print('                                Beginning testing data                     ')
     print('       ____________________________________________________________________')
@@ -327,9 +349,9 @@ if __name__ == '__main__':
       Tang = derivative(FF, Usol, Utrial)
       solve(FF == 0, Usol, J=Tang)
       uh,Rsigh = Usol.split()
-      plot(uh)
-      filename = 'poisson_nonlinear_gradient_test'+str(i)+'.png'
-      plt.savefig ( filename )
+      #plot(uh)
+      #filename = 'poisson_nonlinear_gradient_test'+str(i)+'.png'
+      #plt.savefig ( filename )
       
           
       coeff_each_m = Usol.vector().get_local()
@@ -337,8 +359,38 @@ if __name__ == '__main__':
 
       norm_L2      = sqrt(assemble((uh)**2*dx)) 
       norm_Hdiv = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )  
+      _L2unorm_test.append(norm_L2)
+      _H2snorm_test.append(norm_Hdiv)
+      if i == 0:
+        K = len(coeff_each_m)
+        print('FE degrees of freedom K = ', K)
+
       print('====================================================================')
       print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_test= ', z)
       print('====================================================================')
+    run_data = {}
+    run_data['d']              = d
+    run_data['K']              = K
+    run_data['m_max']          = m_max
+    run_data['m_test']         = m_test
+    run_data['y_in_test_data'] = y_in_test
+    run_data['mesh_op']        = nk
+    run_data['FE_degree']      = deg
+    run_data['All_Test_coeff'] = All_Test_coeff
+    run_data['_L2unorm_test']       = _L2unorm_test
+    run_data['_H2snorm_test']       = _H2snorm_test
+    if args.test_pointset == 'CC_sparse_grid':
+      run_data['w_test_weights']      = w_test_weights
+    run_data['fenics_mesh_coords']       = np.array(mesh.coordinates())
+    run_data['fenics_mesh_cells']        = np.array(mesh.cells())
+    run_data['fenics_mesh_num_cells']    = np.array(mesh.num_cells())
+    run_data['fenics_mesh_num_edges']    = np.array(mesh.num_edges())
+    run_data['fenics_mesh_num_vertices'] = np.array(mesh.num_vertices())
+    run_data['fenics_mesh_hmax']         = np.array(mesh.hmax())
+    run_data['fenics_mesh_hmin']         = np.array(mesh.hmin())
+    run_data['fenics_mesh_rmax']         = np.array(mesh.rmax())
+    run_data['fenics_mesh_rmin']         = np.array(mesh.rmin())
+    sio.savemat(test_data_filename, run_data)
+    print('saved in:',test_data_filename)
 
    
