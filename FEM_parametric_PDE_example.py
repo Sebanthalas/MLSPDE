@@ -78,28 +78,26 @@ if __name__ == '__main__':
   start_time = time.time()
   # parse the arguments from the command line
   parser = argparse.ArgumentParser()
+  # General settngs 
+  parser.add_argument("--test_pointset", default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
+  parser.add_argument("--nb_trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
+  parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
+  parser.add_argument("--run_ID", type = str, help = "String for naming batch of trials in this run (default timestamp)")
   parser.add_argument("--input_dim", default = 1, type = int, help = "Dimension of the input (default 1)")
   parser.add_argument("--nb_train_points", default = 1, type = int, help = "Number of points to use in training (default 1)")
   parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
   parser.add_argument("--train_pointset", default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
   parser.add_argument("--precision", default = 'double', type = str, help = "Switch for double vs. single precision")
+  parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
+  # PDE solver settings
   parser.add_argument("--problem", default = 'other', type = str, help = "Defines the PDE problem to solve")
   parser.add_argument("--mesh_num", default = 2, type = int, help = "Defines the refiniment of the mesh, 1,2,3,4 (default mesh number 2)")
-  parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
   parser.add_argument("--FE_degree", default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
-  parser.add_argument("--test_pointset", default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
-  parser.add_argument("--nb_trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
-  parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
-  parser.add_argument("--run_ID", type = str, help = "String for naming batch of trials in this run (default timestamp)")
   parser.add_argument("--example", default = 'other', type = str, help = "Example function to use in the PDE (default other)")
   parser.add_argument("--quiet", default = 1, type = int, help = "Switch for verbose output (default 1)")
-  parser.add_argument("--DNN", default = 0, type = int, help = "Train the DNN (default 1)")
   parser.add_argument("--trial_num", default = 0, type = int, help = "Number for the trial to run (default 0)")
   parser.add_argument("--make_plots", default = 0, type = int, help = "Switch for generating plots (default 0)")
   parser.add_argument("--error_tol", default = "1e-4", type = str, help = "Stopping tolerance for the solvers (default 1e-4)")
-  parser.add_argument("--mu_value", type = str, help = "Regularization parameter lambda")
-  parser.add_argument("--xi", default = "1e-3", type = str, help = "Regularization parameter lambda")
-  parser.add_argument("--pmax", default = 80, type = int, help = "Maximum order p of the polynomial space")
   parser.add_argument("--SG_level", default = 5, type = int, help = "Maximum order p of the polynomial space")
   parser.add_argument("--fenics_log_level", default = 30, type = int, help = "Log level for the FEniCS solver (default 30 = WARNING)")
   args = parser.parse_args()
@@ -116,11 +114,7 @@ if __name__ == '__main__':
   np_seed = trial
   np.random.seed(np_seed)
 
-  plotting_FE_solns = 0
-  exact_FE_soln     = 0
-  using_SG_points   = 0
-  save_vtk_files    = 0
-  plotting_points   = 0
+
 
   # set the input dimension
   d         = args.input_dim
@@ -185,7 +179,7 @@ if __name__ == '__main__':
     m_test = args.nb_test_points
 
     # generate the points randomly
-    y_in_test = 2.0*np.random.rand(d,m_test) - 1.0
+    y_in_test = np.transpose(np.random.uniform(-1.0,1.0,(m_test,d)))    
   else:
     sys.exit('Must be one of the options, e.g., CC_sparse_grid or uniform_random')
   print('===================================================================')
@@ -236,7 +230,11 @@ if __name__ == '__main__':
   run_data_filename  = result_folder + '/trial_' + str(trial) + '_run_data.mat'
   results_filename   = result_folder + '/trial_' + str(trial) + '_results.mat'
   test_data_filename = run_root_folder + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
-  test_results_filename = result_folder + '/trial_' + str(trial) + '_test_results.mat'
+  if args.test_pointset == 'CC_sparse_grid':
+    test_results_filename = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/'+str(d)+'d_'+str(args.SG_level)+'_SG_test_data.mat'
+  else:
+    test_results_filename = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/'+str(d)+'d_'+str(m_test)+'_mUR_test_data.mat'
+
 
   # See if this is usefl later on
   m_test_check = m_test
@@ -368,6 +366,9 @@ if __name__ == '__main__':
       print('====================================================================')
       print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_test= ', z)
       print('====================================================================')
+    test_data ={}
+    test_data['m_test']         = m_test
+    sio.savemat(test_results_filename, test_data)
     run_data = {}
     run_data['d']              = d
     run_data['K']              = K
