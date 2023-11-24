@@ -155,6 +155,19 @@ if __name__ == '__main__':
   m     = args.nb_train_points
   # set the maximum number of training points 
   m_max = args.max_nb_train_points
+  # set the precision variable to initialize weights and biases in either double or single precision
+  if args.precision == 'double':
+    print('===================================================================')
+    print('Using double precision') 
+    print('===================================================================')
+    precision = np.float64
+    error_tol = float(args.error_tol)
+  elif args.precision == 'single':
+    print('===================================================================')
+    print('Using single precision')
+    print('===================================================================')
+    precision = np.float32
+    error_tol = float(args.error_tol)
 
   #================================================================
   #  *********** create the sparse grid generator ************* #
@@ -185,51 +198,28 @@ if __name__ == '__main__':
   print('===================================================================')
   print('Testing with the', args.test_pointset, 'rule with', m_test, 'points in', d, 'dimensions')
   print('===================================================================')
-  # set the precision variable to initialize weights and biases in either double or single precision
-  if args.precision == 'double':
-    print('===================================================================')
-    print('Using double precision') 
-    print('===================================================================')
-    precision = np.float64
-    error_tol = float(args.error_tol)
-  elif args.precision == 'single':
-    print('===================================================================')
-    print('Using single precision')
-    print('===================================================================')
-    precision = np.float32
-    error_tol = float(args.error_tol)
+  
 
   # unique key for naming results
   key = str(m).zfill(6) + '_pnts_%2.2e' % (error_tol) + '_tol_'+str(d)+'_d'
+  key_test = str(m_test).zfill(6) + '_pnts_%2.2e' % (error_tol) + '_tol_'+str(d)+'_d'
 
   # Save the training and test#
-  scratchdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/' + key
-  projectdir    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example 
-  result_folder = scratchdir
-  scratch_folder = projectdir
-  run_root_folder = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example+ '/' + key
+  
+  result_folder_train = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
+  result_folder_test  = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/testing_data_' + args.example + '/' + key_test
 
-  if not os.path.exists(result_folder):
-      try:
-          os.makedirs(result_folder)    
-      except FileExistsError:
-        print('===================================================================')
-        print('skipping making', result_folder)
-        print('===================================================================')
+  
+  
 
-  if not os.path.exists(scratch_folder): 
-      try:
-          os.makedirs(scratch_folder)
-      except FileExistsError:
-          print('skipping making', scratch_folder)
+   
   print('===================================================================')
-  print('Saving results to', result_folder)
+  print('Saving results to', result_folder_train)
   print('===================================================================')
  
   
-  run_data_filename  = result_folder + '/trial_' + str(trial) + '_run_data.mat'
-  results_filename   = result_folder + '/trial_' + str(trial) + '_results.mat'
-  test_data_filename = run_root_folder + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
+  run_data_filename  = result_folder_train + '/trial_' + str(trial) + '_run_data.mat'
+  test_data_filename = result_folder_test + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
   if args.test_pointset == 'CC_sparse_grid':
     test_results_filename = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/'+str(d)+'d_'+str(args.SG_level)+'_SG_test_data.mat'
   else:
@@ -240,6 +230,13 @@ if __name__ == '__main__':
   m_test_check = m_test
 
   if args.train:
+    if not os.path.exists(result_folder_train):
+      try:
+          os.makedirs(result_folder_train)    
+      except FileExistsError:
+        print('===================================================================')
+        print('skipping making', result_folder_train)
+        print('===================================================================')
     print('       ____________________________________________________________________')
     print('                                Beginning training                         ')
     print('       ____________________________________________________________________')
@@ -320,6 +317,13 @@ if __name__ == '__main__':
     print('saved in:',run_data_filename)
   
   else:
+    if not os.path.exists(result_folder_test):
+      try:
+          os.makedirs(result_folder_test)    
+      except FileExistsError:
+        print('===================================================================')
+        print('skipping making', result_folder_test)
+        print('===================================================================')
     print('       ____________________________________________________________________')
     print('                                Beginning testing data                     ')
     print('       ____________________________________________________________________')
