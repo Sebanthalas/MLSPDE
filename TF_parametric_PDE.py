@@ -97,6 +97,7 @@ if __name__ == '__main__':
       unique_run_ID = args.run_ID
     # record the trial number
     trial   = args.trial_num
+    tf_seed = trial
     np_seed = trial
     np.random.seed(np_seed)
     print('Starting DNN training with tf_seed = %d and np_seed = %d' % (trial, np_seed))
@@ -180,7 +181,7 @@ if __name__ == '__main__':
     #m_test_check = 9
     run_data_filename       = scratchdir_train + '/trial_' + str(trial) + '_run_data.mat'
     test_data_filename      = scratchdir_tests + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
-    #DNN_results_filename    = result_folder  + '/data_m_'+str(m).zfill(6)+'_deg_'+str(deg[0][0])+'_mesh_'+str(nk)+'_af_'+activation+''+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_final.mat'
+    DNN_results_filename    = result_folder  + '/data_m_'+str(m).zfill(6)+'_deg_'+str(deg)+'_mesh_'+str(nk)+'_af_'+activation+''+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_final.mat'
     #DNN_model_final_savedir = result_folder + '/DNN_finalModel_trial_' + str(trial)
     print('path:',run_data_filename)
 
@@ -190,7 +191,7 @@ if __name__ == '__main__':
         sorted(train_data.keys())
         y_in_train_data  = train_data['y_in_train_data']
         All_Train_coeff  = train_data['All_Train_coeff']
-        All_Train_coeff  =  All_Train_coeff[range(m_train),:]
+        All_Train_coeff  =  All_Train_coeff[range(m),:]
         print('===================================================================')
         print('TRAIN DATA FOUND number of training points available',len(All_Train_coeff))
         print('===================================================================')
@@ -209,6 +210,60 @@ if __name__ == '__main__':
         print('===================================================================')
         print('TEST DATA FOUND number of testing points available',len(All_Test_coeff))
         print('===================================================================')
+    else: 
+        errstr = ('no testing data')
+        sys.exit(errstr)
+    # Extract the coefficients of all the functions and output dimensions
+    u_train_data =  extract_specific_function(All_Train_coeff,0).T
+    output_dim   = u_train_data.shape[1]
+
+    print('Running problem (key): ' + str(key_DNN))
+    print("")
+    print("*************************************")
+    print('Starting trial: ' + str(trial))
+    print("*************************************")
+    print("")
+    # set the precision variable to initialize weights and biases in either double or single precision
+    if args.DNN_precision == 'double':
+        print('Using double precision for DNN') 
+        precision         = np.float64
+        error_tol         = float(args.DNN_error_tol)
+    elif args.DNN_precision == 'single':
+        print('Using single precision for DNN')
+        precision         = np.float32
+        error_tol         = float(args.DNN_error_tol)
+    print('Beginning DNN training')
+
+    #==============================================================================
+    # Version AND CONFIGURATIONS
+    #==============================================================================
+    #np_seed = 0 #trial
+    #np.random.seed(np_seed)
+    #python_random.seed(np_seed)
+    tf.random.set_seed(tf_seed)
+    print('Starting DNN training with tf_seed = %d and np_seed = %d' % (tf_seed, np_seed))
+    start_time = time.time()
+
+    #==============================================================================
+    # DEFAULT SETTINGS
+    #==============================================================================
+    DNN_run_data = {}
+    #DNN_run_data['fenics_params']                  = fenics_params
+    #DNN_run_data['init_rate']                      = 1e-3
+    #DNN_run_data['decay_steps']                    = 1e3
+    DNN_run_data['initializer']                    = initializer
+    DNN_run_data['optimizer']                      = args.DNN_optimizer
+    DNN_run_data['lrn_rate_schedule']              = lrn_rate_schedule
+    DNN_run_data['error_tol']                      = error_tol 
+    DNN_run_data['nb_epochs']                      = nb_epochs
+
+    print('=================================================================================')
+    print('Running problem (key_DNN): ' + str(key_DNN))
+    print('Saving to (projectdir_DNN): ' + str(DNN_results_filename))
+    print('Starting trial: ' + str(trial))
+    print('=================================================================================')
+
+
 
  
 
