@@ -254,8 +254,14 @@ if __name__ == '__main__':
 
       # get the training data inputs 
       z = y_in_train[:,i]
-      #string  = 1/150
-      string  =  '1/(6.0+(' + str(z[0]) + '*x+' + str(z[1]) + '*y+' + str(z[2]) + '+'+ str(z[3]) +' ))' 
+      if example == 'other':
+          pi     = str(3.14159265359)
+          amean  = str(2)
+          string = '1.1 + '
+          for j in range(d):
+            term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
+            string =  string + '+' + term
+      string  =  '1.0/('+string+')' 
       a       = Expression(str2exp(string), degree=2, domain=mesh)
       f       = Constant(0.0)
       u, Rsig = split(Usol)
@@ -331,7 +337,14 @@ if __name__ == '__main__':
     for i in range(m_test):
       coeff_each_m = []
       z = y_in_test[:,i]
-      string  =  '1/(6.0+(' + str(z[0]) + '*x+' + str(z[1]) + '*y+' + str(z[2]) + '+'+ str(z[3]) +' ))' 
+      if example == 'other':
+          pi     = str(3.14159265359)
+          amean  = str(2)
+          string = '2.0 + '
+          for j in range(d):
+            term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
+            string =  string + '+' + term
+      string  =  '1.0/('+string+')' 
       a       = Expression(str2exp(string), degree=2, domain=mesh)
       f       = Constant(0.0)
       u, Rsig = split(Usol)

@@ -7,22 +7,22 @@ echo "CONTROL: starting runs on test datasets"
 # SHARED PARAMETERS
 declare -r training_ptset="uniform_random"
 declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
-declare -r example="other" # logKL_expansion ; other
-declare -r SG_level=4
+declare -r example="other" # logKL_expansion ; other;
+declare -r SG_level=1
 declare -r max_nb_train_points=5
 declare -r mesh_num=2
 declare -r FE_degree=1
+declare -r input_dim=10
 
 # FEM PARAMETERS
-declare -r input_dim=4
-declare -r trainn=1          # options:  "testing_data"=0 ; "training_data"=1 ; "result_data"=2
-declare -r train_pts=250     # change this to the total number of training points TO BE CREATED if trainn =1
-declare -r nb_test_points=11 # change this for uniform_random only
+declare -r trainn=0       # options:  "testing_data"=0 ; "training_data"=1 ; "result_data"=2
+declare -r train_pts=20    # change this to the total number of training points TO BE CREATED if trainn =1
+declare -r nb_test_points=20 # change this for uniform_random only
 declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
 
 # DNN PARAMETERS
 declare -r UseDnn=1
-declare -r DNN_nb_trainingpts=5
+declare -r DNN_nb_trainingpts=20
 declare -r DNN_precision="single"
 declare -r DNN_optimizer="adam"
 declare -r DNN_loss_function="l2"
@@ -39,14 +39,6 @@ declare -r DNN_nb_layers=5
 declare -r DNN_max_nb_train_pts=5 # number of points to be used in the training <= nb_test_points
 declare -r make_plots=0
 declare -r pmax=7
-
-
-
-
-
-
- 
-
 
 
 
@@ -68,9 +60,6 @@ elif [ "$DNN_precision" = "double" ]; then
 fi
 
 
-
-# use to set processor affinity
-#taskset -c $((2*$j)) 
 
 # pre-generate the testing results 
 #python3 -m cProfile -s time FEM_parametric_PDE_example.py --to --time --things.......

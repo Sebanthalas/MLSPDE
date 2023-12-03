@@ -470,9 +470,9 @@ if __name__ == '__main__':
                 error_L2u = sqrt(assemble((u_sol-uh)**2*dx) ) 
 
                 L2u_err += error_L2u * w_test_weights[i]
-            #plot(uh)
-            #filename = 'poisson_nonlinear_gradient'+str(epoch)+'.png'
-            #plt.savefig ( filename )
+            plot(uh)
+            filename = 'poisson_nonlinear_gradient'+str(epoch)+'.png'
+            plt.savefig ( filename )
                 
             L2u_err = np.sqrt(np.abs(L2u_err/2**(d)))
 
