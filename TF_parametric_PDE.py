@@ -50,11 +50,11 @@ if __name__ == '__main__':
     # General settngs 
     parser.add_argument("--test_pointset", default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
     parser.add_argument("--nb_trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
-    parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
+    #parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
     parser.add_argument("--run_ID", type = str, help = "String for naming batch of trials in this run (default timestamp)")
     parser.add_argument("--input_dim", default = 1, type = int, help = "Dimension of the input (default 1)")
     parser.add_argument("--nb_train_points", default = 1, type = int, help = "Number of points to use in training (default 1)")
-    parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
+    #parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
     parser.add_argument("--train_pointset", default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
     parser.add_argument("--precision", default = 'double', type = str, help = "Switch for double vs. single precision")
     parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
@@ -85,6 +85,7 @@ if __name__ == '__main__':
     parser.add_argument("--DNN_max_nb_train_pts", default = 5, type = int, help = "Defines the PDE problem to solve")
     parser.add_argument("--DNN_test_epoch", default = 50, type = int, help = "Defines the PDE problem to solve")
     parser.add_argument("--DNN_show_epoch", default = 10, type = int, help = "Defines the PDE problem to solve")
+    parser.add_argument("--Use_batching", default = 0, type = int, help = "Defines the use of batching. =0 (no batching) = NUM (Batch m/NUM)")
 
 
 
@@ -167,12 +168,12 @@ if __name__ == '__main__':
     # unique key for naming results
     key          = str(m_train).zfill(6) + '_pnts_%2.2e' % (float(args.error_tol)) + '_tol_'+str(d)+'_d'
     key_test     = str(m_test).zfill(6) + '_pnts_%2.2e' % (float(args.error_tol)) + '_tol_'+str(d)+'_d'
-    key_DNN = str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer + '_optimizer_' \
+    key_DNN = str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer +'_d_'+str(d)+ '_optimizer_' \
               + args.DNN_loss_function + '_loss_' + args.DNN_activation  + '_' + str(args.DNN_nb_layers) + 'x' \
               + str(nb_nodes_per_layer) + '_' + args.DNN_blocktype
     scratchdir_train    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
     scratchdir_tests    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/' + key_test
-    scratchdir_resul    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example + '/' + key_DNN
+    scratchdir_resul    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example +'/' + str(trial) + '/' + key_DNN
     result_folder       = scratchdir_resul
 
     if not os.path.exists(result_folder):
@@ -223,10 +224,13 @@ if __name__ == '__main__':
 
     print('Running problem (key): ' + str(key_DNN))
     print("")
-    print("*************************************")
-    print('Starting trial: ' + str(trial))
-    print("*************************************")
+    print("***************************************************************************************************************")
+    print("***************************************************************************************************************")
     print("")
+    print('       STARTING TRIAL:' + str(trial) + '      DIMENSION:' +str(d) + '      TRAINING POINTS:'+str(m)+'   ACTIVATION: '+ activation)
+    print("")
+    print("***************************************************************************************************************")
+    print("***************************************************************************************************************")
     # set the precision variable to initialize weights and biases in either double or single precision
     if args.DNN_precision == 'double':
         print('Using double precision for DNN') 
@@ -360,7 +364,13 @@ if __name__ == '__main__':
     # Extract the coefficients of all the functions and output dimensions
     u_train_data =  extract_specific_function(All_Train_coeff,0).T
     output_dim   = u_train_data.shape[1]
-    BATCH_SIZE   = int(m/5)
+    if args.Use_batching==0:
+        print("NO BATCH")
+        BATCH_SIZE   = m # int(m/5)
+    else:
+        BATCH_SIZE   = int(m/5)
+        print("BATCH=",BATCH_SIZE)
+    BATCH_SIZE   = m # int(m/5)
     nb_train_pts = m
     nb_test_pts  = m_test
     x_train_data =  y_in_train_data.T
@@ -455,8 +465,21 @@ if __name__ == '__main__':
             u_pred = DNN(y_test)  
             u_coef_pred = tf.cast(u_pred, dtype= tf.float32)
             L2u_err     = 0.0
+            Hdi_err     = 0.0
             
             for i in range(m_test):
+                #The coefficient
+                z = x_test_data[i,:]
+                #print(z)
+                if example == 'other':
+                  pi     = str(3.14159265359)
+                  amean  = str(2)
+                  string = '1.1 + '
+                  for j in range(d):
+                    term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
+                    string =  string + '+' + term
+                string  =  '1.0/('+string+')' 
+                a       = Expression(str2exp(string), degree=2, domain=mesh)
                 # REAL
                 var_aux_u_real = np.array(var2[i,:])     
                 soltrue.vector().set_local(var_aux_u_real)
@@ -464,23 +487,40 @@ if __name__ == '__main__':
                 var_aux_u =  np.array(u_coef_pred[i, :])
                 # DNN In
                 solDNN.vector().set_local(var_aux_u)
-                u_sol, _   = soltrue.split()
-                uh   , _   = solDNN.split()        
+                u_sol, sigma_FEM   = soltrue.split()
+                uh   , sigma_DNN   = solDNN.split()        
 
-                error_L2u = sqrt(assemble((u_sol-uh)**2*dx) ) 
+                error_L2u = assemble((u_sol-uh)**2*dx)  
+                error_Hdi = assemble(a*(sigma_FEM-sigma_DNN)**2*dx) # +assemble( ( div(sigma_FEM)- div(sigma_DNN) )**2*dx)  
 
                 L2u_err += error_L2u * w_test_weights[i]
-            plot(uh)
-            filename = 'poisson_nonlinear_gradient'+str(epoch)+'.png'
-            plt.savefig ( filename )
+                Hdi_err += error_Hdi * w_test_weights[i]
+            #plot(sigma_DNN[0])
+            #filename = 'poisson_nonlinear_gradient'+str(epoch)+'.png'
+            #plt.savefig ( filename )
                 
             L2u_err = np.sqrt(np.abs(L2u_err/2**(d)))
+            Hdi_err = np.sqrt(np.abs(Hdi_err/2**(d)))
 
             # Append
-            L2u_err_append = np.append(L2u_err_append, L2u_err)  
-            
+            L2u_err_append  = np.append(L2u_err_append, L2u_err)  
+            Hdiv_err_append = np.append(Hdiv_err_append, Hdi_err) 
             print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('Testing errors: L4u_e = %4.3e' % (L2u_err,))
+            print('Testing errors: L4u_e = %4.3e,L2p_e = %4.3e' % (L2u_err,Hdi_err))
+        if (res <= error_tol) or (epoch == error_tol-1):
+                if res <= best_loss:
+                    best_loss   = res
+                    best_epoch  = epoch
+                    #DNN.save(result_folder + '/model_save_folder')
+    # Save data
+    test_results = {}
+    test_results['L2u_err_af_'+activation +'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'']   = L2u_err_append
+    test_results['Hdi_err_af_'+activation +'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'']   = Hdiv_err_append
+    test_results['residual_af_'+activation+'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'']   = L2_error_data
+    test_results['Best_epoch']   = best_epoch
+
+    # save the resulting mat file with scipy.io
+    sio.savemat(result_folder + '/' + key_DNN+'_final.mat', test_results)
         
 
 

@@ -80,12 +80,12 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   # General settngs 
   parser.add_argument("--test_pointset", default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
-  parser.add_argument("--nb_trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
+  parser.add_argument("--trials", default = 1, type = int, help = "Number of trials to run for averaging results (default 1)")
   parser.add_argument("--train", default = 0, type = int, help = "Switch for training or testingi (default 0=test)")
   parser.add_argument("--run_ID", type = str, help = "String for naming batch of trials in this run (default timestamp)")
   parser.add_argument("--input_dim", default = 1, type = int, help = "Dimension of the input (default 1)")
   parser.add_argument("--nb_train_points", default = 1, type = int, help = "Number of points to use in training (default 1)")
-  parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
+  #parser.add_argument("--max_nb_train_points", default = 500, type = int, help = "Maximum number of points to use in training for this run (default 500)")
   parser.add_argument("--train_pointset", default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
   parser.add_argument("--precision", default = 'double', type = str, help = "Switch for double vs. single precision")
   parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
@@ -154,7 +154,7 @@ if __name__ == '__main__':
   # set the number of training points 
   m     = args.nb_train_points
   # set the maximum number of training points 
-  m_max = args.max_nb_train_points
+  #m_max = args.max_nb_train_points
   # set the precision variable to initialize weights and biases in either double or single precision
   if args.precision == 'double':
     print('===================================================================')
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     run_data = {}
     run_data['d']              = d
     run_data['K']              = K
-    run_data['m_max']          = m_max
+    #run_data['m_max']          = m_max
     run_data['m_train']        = m
     run_data['y_in_train_data']= y_in_train
     run_data['mesh_op']        = nk
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     run_data = {}
     run_data['d']              = d
     run_data['K']              = K
-    run_data['m_max']          = m_max
+    #run_data['m_max']          = m_max
     run_data['m_test']         = m_test
     run_data['y_in_test_data'] = y_in_test
     run_data['mesh_op']        = nk
