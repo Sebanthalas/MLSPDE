@@ -118,7 +118,7 @@ if __name__ == '__main__':
     #================================================================
     deg = args.FE_degree  
     Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
-    RTv = FiniteElement('RT', mesh.ufl_cell(), deg+1)
+    RTv = FiniteElement('BDM', mesh.ufl_cell(), deg+1)
     Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
     nvec = Hh.dim()
     #================================================================
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     if os.path.exists(run_data_filename):
         print('Found FEM train_data file:', run_data_filename)
-        train_data    = sio.loadmat(run_data_filename)
+        train_data       = sio.loadmat(run_data_filename)
         sorted(train_data.keys())
         y_in_train_data  = train_data['y_in_train_data']
         All_Train_coeff  = train_data['All_Train_coeff']
@@ -362,8 +362,10 @@ if __name__ == '__main__':
     # DNN SETTING 
     #==============================================================================
     # Extract the coefficients of all the functions and output dimensions
-    u_train_data =  extract_specific_function(All_Train_coeff,0).T
+    u_train_data       =  extract_specific_function(All_Train_coeff,0).T
+    te11_train_data    =  extract_specific_function(All_Train_coeff,1).T
     output_dim   = u_train_data.shape[1]
+
     if args.Use_batching==0:
         print("NO BATCH")
         BATCH_SIZE   = m # int(m/5)
@@ -378,7 +380,8 @@ if __name__ == '__main__':
     #==============================================================================
     # # Functional API
     #==============================================================================
-    all_layers_u = []
+    all_layers_u    = []
+    all_layers_te11 = []
     inputs       = keras.Input(shape=(d,), name = 'input_y')
     branch_u     = tf.keras.layers.Dense(nb_nodes_per_layer, 
                                                         activation=activation,
@@ -386,30 +389,52 @@ if __name__ == '__main__':
                                                         kernel_initializer= weight_bias_initializer,
                                                         bias_initializer= weight_bias_initializer,
                                                         dtype=tf.float32)(inputs) 
+    branch_te11  = tf.keras.layers.Dense(nb_nodes_per_layer,
+                                                activation=activation,
+                                                name='branch_te11',
+                                                kernel_initializer= weight_bias_initializer,
+                                                bias_initializer= weight_bias_initializer,
+                                                dtype=tf.float32)(inputs)
     # Append each layer
     all_layers_u.append(branch_u)
+    all_layers_te11.append(branch_te11)
 
     for layer in range(nb_layers):
-        layer_name_u  = 'dense_u' + str(layer)
+        layer_name_u    = 'dense_u' + str(layer)
+        layer_name_te11 = 'dense_te11' + str(layer)
         this_layer_u = tf.keras.layers.Dense(nb_nodes_per_layer, 
                                             activation=activation,
                                             name=layer_name_u,
                                             kernel_initializer= weight_bias_initializer,
                                             bias_initializer= weight_bias_initializer,
                                             dtype=tf.float32)(all_layers_u[layer])
-        all_layers_u.append(this_layer_u)                              
+        this_layer_te11 = tf.keras.layers.Dense(nb_nodes_per_layer,
+                                                activation=activation,
+                                                name=layer_name_te11,
+                                                kernel_initializer= weight_bias_initializer,
+                                                bias_initializer= weight_bias_initializer,
+                                                dtype=tf.float32)(all_layers_te11[layer])
+        all_layers_u.append(this_layer_u)
+        all_layers_te11.append(this_layer_te11)                              
 
 
     final_num = layer+1
-    first_output_layer_u = tf.keras.layers.Dense(output_dim,
+    first_output_layer_u    = tf.keras.layers.Dense(output_dim,
                                                 activation= tf.keras.activations.linear,
                                                 trainable=True,
                                                 use_bias=False,
                                                 name='output_u',
                                                 kernel_initializer=weight_bias_initializer,
-                                                dtype=tf.float32)(all_layers_u[final_num])                                            
+                                                dtype=tf.float32)(all_layers_u[final_num])
+    first_output_layer_te11 = tf.keras.layers.Dense(output_dim,
+                                                    activation= tf.keras.activations.linear,
+                                                    trainable=True,
+                                                    use_bias=False,
+                                                    name='output_te11',
+                                                    kernel_initializer=weight_bias_initializer,
+                                                    dtype=tf.float32)(all_layers_te11[final_num])                                            
 
-    DNN = tf.keras.Model(inputs=inputs, outputs=[first_output_layer_u])
+    DNN = tf.keras.Model(inputs=inputs, outputs=[first_output_layer_u,first_output_layer_te11])
 
     
 
@@ -423,16 +448,22 @@ if __name__ == '__main__':
         uy = DNN(y)[0]
         return uy # Cofficients 
     @tf.function
-    def get_mse(y,u_true):
+    def get_te11(y):
+        y = tf.convert_to_tensor(y)
+        uy = DNN(y)[1]
+        return uy # Cofficients
+    @tf.function
+    def get_mse(y,u_true,te11):
         # minimize solution u on Omega x[0,T]
-        mse_1 = tf.reduce_mean((get_u(y)- u_true)**2 )  
-        return mse_1 
+        mse_1 = tf.reduce_mean((get_u(y)- u_true)**2 )
+        mse_2 = tf.reduce_mean((get_te11(y)- te11)**2)  
+        return mse_1 + mse_2 
     OPT = tf.keras.optimizers.Adam(1e-4)
     @tf.function
-    def GD(y,u_true):
+    def GD(y,u_true,te11):
         with tf.GradientTape() as g:
             g.watch(DNN.variables)
-            mse = get_mse(y,u_true)
+            mse = get_mse(y,u_true,te11)
         G = g.gradient(mse,DNN.variables)
         OPT.apply_gradients(zip(G,DNN.variables)) 
     # Data inside the domain
@@ -452,10 +483,11 @@ if __name__ == '__main__':
         # Data inside the domain
         y_in     = tf.cast(np.asarray(x_train_data)[I,:], tf.float32)
         u_in     = tf.cast(np.asarray(u_train_data)[I,:], tf.float32)
+        te11_in  = tf.cast(np.asarray(te11_train_data)[I,:], tf.float32)
         # gradient descent
-        GD(y_in,u_in)
+        GD(y_in,u_in,te11_in)
         # compute loss
-        res = get_mse(y_in,u_in)
+        res = get_mse(y_in,u_in,te11_in)
         L2_error_data = np.append(L2_error_data, res)
         if (epoch % args.DNN_show_epoch ==0):
             print('============================================================')
@@ -470,7 +502,7 @@ if __name__ == '__main__':
             for i in range(m_test):
                 #The coefficient
                 z = x_test_data[i,:]
-                #print(z)
+                #print("Loading the test results for:",i)
                 if example == 'other':
                   pi     = str(3.14159265359)
                   amean  = str(2)
@@ -481,23 +513,45 @@ if __name__ == '__main__':
                 string  =  '1.0/('+string+')' 
                 a       = Expression(str2exp(string), degree=2, domain=mesh)
                 # REAL
+
                 var_aux_u_real = np.array(var2[i,:])     
                 soltrue.vector().set_local(var_aux_u_real)
                 # DNN coeff
-                var_aux_u =  np.array(u_coef_pred[i, :])
+                var       = u_pred[0][0,:]*0
+                #print(len(u_pred))
+                for k in range(2):
+                        var = var + u_pred[k][i,:]
+                var_aux_u = np.array(var)
+                #var_aux_u =  np.array(u_coef_pred[i, :])
                 # DNN In
                 solDNN.vector().set_local(var_aux_u)
                 u_sol, sigma_FEM   = soltrue.split()
                 uh   , sigma_DNN   = solDNN.split()        
 
                 error_L2u = assemble((u_sol-uh)**2*dx)  
-                error_Hdi = assemble(a*(sigma_FEM-sigma_DNN)**2*dx) # +assemble( ( div(sigma_FEM)- div(sigma_DNN) )**2*dx)  
+                error_Hdi = assemble((sigma_FEM-sigma_DNN)**2*dx) # +assemble( ( div(sigma_FEM)- div(sigma_DNN) )**2*dx)  
 
                 L2u_err += error_L2u * w_test_weights[i]
                 Hdi_err += error_Hdi * w_test_weights[i]
-            #plot(sigma_DNN[0])
-            #filename = 'poisson_nonlinear_gradient'+str(epoch)+'.png'
+            
+            plot(uh)
+            filename = 'results/_'+str(epoch)+'_DNNu.png'
+            plt.savefig ( filename )
+            plt.close()
+            plot(sigma_DNN)
+            filename = 'results/_'+str(epoch)+'_DNNsigma.png'
+            plt.savefig ( filename )
+            plt.close()
+
+            #plot(u_sol)
+            #filename = '_'+str(epoch)+'_uh.png'
             #plt.savefig ( filename )
+            #plt.close()
+            #plot(sigma_FEM)
+            #filename = '_'+str(epoch)+'_sigmah.png'
+            #plt.savefig ( filename )
+            #plt.close()
+ 
                 
             L2u_err = np.sqrt(np.abs(L2u_err/2**(d)))
             Hdi_err = np.sqrt(np.abs(Hdi_err/2**(d)))
@@ -507,7 +561,7 @@ if __name__ == '__main__':
             Hdiv_err_append = np.append(Hdiv_err_append, Hdi_err) 
             print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
             print('Testing errors: L4u_e = %4.3e,L2p_e = %4.3e' % (L2u_err,Hdi_err))
-        if (res <= error_tol) or (epoch == error_tol-1):
+            if (res <= error_tol) or (epoch == nb_epochs-1):
                 if res <= best_loss:
                     best_loss   = res
                     best_epoch  = epoch

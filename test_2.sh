@@ -6,21 +6,21 @@ echo "CONTROL: starting runs on test datasets"
 
 # SHARED PARAMETERS
 
-declare -r UseFEM_tn=1
+declare -r UseFEM_tn=0
 declare -r UseFEM_ts=0
-declare -r UseDnn=0
+declare -r UseDnn=1
 declare -r training_ptset="uniform_random"
 declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
 declare -r example="other" # logKL_expansion ; other;
-declare -r SG_level=1  #set to 7
+declare -r SG_level=4  #set to 7
 declare -r mesh_num=2
 declare -r FE_degree=1
 declare -A input_dim
-input_dim[0]="7"
+input_dim[0]="10"
 #input_dim[1]="10"
 #input_dim[1]="10"
 declare -A trials
-trials[0]="3"
+trials[0]="1"
 trials[1]="2"
 trials[2]="3"
 trials[3]="4"
@@ -34,7 +34,7 @@ trials[4]="5"
 
 # FEM PARAMETERS
      # options:  "testing_data"=0 ; "training_data"=1 ; "result_data"=2
-declare -r train_pts=100     # change this to the total number of training points TO BE CREATED if trainn =1
+declare -r train_pts=1500      # change this to the total number of training points TO BE CREATED if trainn =1
 declare -r nb_test_points=20 # change this for uniform_random only
 declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
 #declare -r train_pts=10
@@ -71,9 +71,9 @@ declare -r DNN_blocktype="default"
 declare -r DNN_initializer="uniform"
 declare -r DNN_lrn_rate_schedule="exp_decay"
 declare -r DNN_type_loss="customize"
-declare -r DNN_epochs=10000
-declare -r DNN_show_epoch=100
-declare -r DNN_test_epoch=1000
+declare -r DNN_epochs=30000
+declare -r DNN_show_epoch=10
+declare -r DNN_test_epoch=5000
 declare -r DNN_total_trials=2 # total number of trials, must match the number of trials below
 #declare -r DNN_max_nb_train_pts=20 # number of points to be used in the training <= nb_test_points
 declare -r make_plots=0
@@ -102,11 +102,11 @@ fi
 
 
 
-max_trial=0
+max_trial=4
 max_dim=0
-max_trp=0
-max_ratio=0
-max_fun=0
+max_trp=10
+max_ratio=3
+max_fun=1
 for (( i=0; i <= $max_trial; ++i ))
 do
     if [ "$UseFEM_tn" = 1 ]; then
