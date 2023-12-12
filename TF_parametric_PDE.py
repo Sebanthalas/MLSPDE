@@ -503,15 +503,15 @@ if __name__ == '__main__':
                 #The coefficient
                 z = x_test_data[i,:]
                 #print("Loading the test results for:",i)
-                if example == 'other':
-                  pi     = str(3.14159265359)
-                  amean  = str(2)
-                  string = '1.1 + '
-                  for j in range(d):
-                    term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
-                    string =  string + '+' + term
-                string  =  '1.0/('+string+')' 
-                a       = Expression(str2exp(string), degree=2, domain=mesh)
+                #if example == 'other':
+                #  pi     = str(3.14159265359)
+                #  amean  = str(2)
+                #  string = '1.1 + '
+                #  for j in range(d):
+                #    term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
+                #    string =  string + '+' + term
+                #string  =  '1.0/('+string+')' 
+                #a       = Expression(str2exp(string), degree=2, domain=mesh)
                 # REAL
 
                 var_aux_u_real = np.array(var2[i,:])     

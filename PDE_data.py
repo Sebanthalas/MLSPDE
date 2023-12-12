@@ -69,9 +69,9 @@ def gen_dirichlet_data(z,mesh, Hh, example,i,d,train):
     if example == 'other':
         pi     = str(3.14159265359)
         amean  = str(2)
-        string = '1.1 + '
+        string = '1.9 + '
         for j in range(d):
-            term   =  str(z[j])+ '*sin('+pi+'*(x+y)/(pow('+str(j)+'+1.0,2)))/(pow('+str(j)+'+1.0,2))'
+            term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
             string =  string + '+' + term
     string  =  '1.0/('+string+')' 
     a       = Expression(str2exp(string), degree=2, domain=mesh)
@@ -91,7 +91,7 @@ def gen_dirichlet_data(z,mesh, Hh, example,i,d,train):
     solve(FF == 0, Usol, J=Tang)
     uh,Rsigh = Usol.split()
     if train:
-        if i<10:
+        if i<2:
             plot(uh)
             filename = 'poisson_nonlinear_u'+str(i)+'.png'
             plt.savefig ( filename )
@@ -101,7 +101,7 @@ def gen_dirichlet_data(z,mesh, Hh, example,i,d,train):
             plt.savefig ( filename )
             plt.close()
         num_subspaces = W_trainsol.num_sub_spaces()
-        print(num_subspaces)
+        
         for j in range(num_subspaces):
             coef_one_trial = coeff_extr(j,Hh,Usol)
             coeff_each_m.append(coef_one_trial)
@@ -111,7 +111,7 @@ def gen_dirichlet_data(z,mesh, Hh, example,i,d,train):
 
     
     norm_L2      = sqrt(assemble((uh)**2*dx)) 
-    norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )
+    norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)) # +  sqrt(assemble((div(Rsigh) )**2*dx) )  )
 
     
 

@@ -225,7 +225,7 @@ if __name__ == '__main__':
       _H2snorm_train.append(norm_Hdiv)
       
       print('====================================================================')
-      print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_train= ', z)
+      print('i = ', i, 'L2u=  %2.5g ' % norm_L2, 'Hdsig=  %2.5g ' % norm_Hdiv,'y_train= ', z)
       print('====================================================================')
     run_data = {}
     run_data['d']              = d

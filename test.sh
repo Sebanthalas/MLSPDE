@@ -6,21 +6,21 @@ echo "CONTROL: starting runs on test datasets"
 
 # SHARED PARAMETERS
 
-declare -r UseFEM_tn=1
+declare -r UseFEM_tn=0
 declare -r UseFEM_ts=0
-declare -r UseDnn=0
+declare -r UseDnn=1
 declare -r training_ptset="uniform_random"
 declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
 declare -r example="other" # logKL_expansion ; other;
-declare -r SG_level=1  #set to 7
+declare -r SG_level=5  #set to 7
 declare -r mesh_num=2
 declare -r FE_degree=1
 declare -A input_dim
-input_dim[0]="7"
+input_dim[0]="5"
 #input_dim[1]="10"
 #input_dim[1]="10"
 declare -A trials
-trials[0]="3"
+trials[0]="1"
 trials[1]="2"
 trials[2]="3"
 trials[3]="4"
@@ -34,7 +34,7 @@ trials[4]="5"
 
 # FEM PARAMETERS
      # options:  "testing_data"=0 ; "training_data"=1 ; "result_data"=2
-declare -r train_pts=100     # change this to the total number of training points TO BE CREATED if trainn =1
+declare -r train_pts=3000     # change this to the total number of training points TO BE CREATED if trainn =1
 declare -r nb_test_points=20 # change this for uniform_random only
 declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
 #declare -r train_pts=10
@@ -43,17 +43,26 @@ declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "o
 
 # DNN PARAMETERS
 declare -A DNN_nb_trainingpts # ->  so it has to be greater than 5
-DNN_nb_trainingpts[0]="100"
-DNN_nb_trainingpts[1]="200"
-DNN_nb_trainingpts[2]="300"
-DNN_nb_trainingpts[3]="400"
-DNN_nb_trainingpts[4]="500"
-DNN_nb_trainingpts[5]="600"
-DNN_nb_trainingpts[6]="700"
-DNN_nb_trainingpts[7]="800"
-DNN_nb_trainingpts[8]="900"
-DNN_nb_trainingpts[9]="1000"
-DNN_nb_trainingpts[10]="1100"
+DNN_nb_trainingpts[0]="25"
+DNN_nb_trainingpts[1]="50"
+DNN_nb_trainingpts[2]="75"
+DNN_nb_trainingpts[3]="100"
+DNN_nb_trainingpts[4]="125"
+DNN_nb_trainingpts[5]="150"
+DNN_nb_trainingpts[6]="175"
+DNN_nb_trainingpts[7]="200"
+DNN_nb_trainingpts[8]="225"
+DNN_nb_trainingpts[9]="250"
+DNN_nb_trainingpts[10]="275"
+DNN_nb_trainingpts[11]="300"
+DNN_nb_trainingpts[12]="325"
+DNN_nb_trainingpts[13]="350"
+DNN_nb_trainingpts[14]="375"
+DNN_nb_trainingpts[15]="400"
+DNN_nb_trainingpts[16]="425"
+DNN_nb_trainingpts[17]="450"
+DNN_nb_trainingpts[18]="475"
+DNN_nb_trainingpts[19]="500"
 declare -A DNN_activation
 DNN_activation[0]="tanh"
 DNN_activation[1]="relu"
@@ -71,9 +80,9 @@ declare -r DNN_blocktype="default"
 declare -r DNN_initializer="uniform"
 declare -r DNN_lrn_rate_schedule="exp_decay"
 declare -r DNN_type_loss="customize"
-declare -r DNN_epochs=10000
+declare -r DNN_epochs=40501
 declare -r DNN_show_epoch=100
-declare -r DNN_test_epoch=1000
+declare -r DNN_test_epoch=13500
 declare -r DNN_total_trials=2 # total number of trials, must match the number of trials below
 #declare -r DNN_max_nb_train_pts=20 # number of points to be used in the training <= nb_test_points
 declare -r make_plots=0
@@ -102,11 +111,11 @@ fi
 
 
 
-max_trial=0
+max_trial=1
 max_dim=0
-max_trp=0
-max_ratio=0
-max_fun=0
+max_trp=19
+max_ratio=3
+max_fun=1
 for (( i=0; i <= $max_trial; ++i ))
 do
     if [ "$UseFEM_tn" = 1 ]; then
