@@ -4,21 +4,25 @@ python3 --version
 
 echo "CONTROL: starting runs on test datasets"
 
+
+#SHARED VARIABLES ; NOT FREQUENLTY CHANGED  
+declare -r training_ptset="uniform_random"
+declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
+declare -r example="other" # logKL_expansion ; other;
+declare -r SG_level=1  #set to 7
+declare -r mesh_num=9
+
 # SHARED PARAMETERS
 
 declare -r UseFEM_tn=0
 declare -r UseFEM_ts=0
 declare -r UseDnn=1
-declare -r training_ptset="uniform_random"
-declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
-declare -r example="other" # logKL_expansion ; other;
-declare -r SG_level=5  #set to 7
-declare -r mesh_num=2
 declare -r FE_degree=1
 declare -A input_dim
 input_dim[0]="5"
 #input_dim[1]="10"
 #input_dim[1]="10"
+
 declare -A trials
 trials[0]="1"
 trials[1]="2"
@@ -33,9 +37,9 @@ trials[4]="5"
 
 
 # FEM PARAMETERS
-     # options:  "testing_data"=0 ; "training_data"=1 ; "result_data"=2
-declare -r train_pts=3000     # change this to the total number of training points TO BE CREATED if trainn =1
-declare -r nb_test_points=20 # change this for uniform_random only
+
+declare -r train_pts=10     # change this to the total number of training points TO BE CREATED if trainn =1
+declare -r nb_test_points=10 # change this for uniform_random only
 declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
 #declare -r train_pts=10
 #train_pts[0]="5"
@@ -43,7 +47,7 @@ declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "o
 
 # DNN PARAMETERS
 declare -A DNN_nb_trainingpts # ->  so it has to be greater than 5
-DNN_nb_trainingpts[0]="25"
+DNN_nb_trainingpts[0]="10"
 DNN_nb_trainingpts[1]="50"
 DNN_nb_trainingpts[2]="75"
 DNN_nb_trainingpts[3]="100"
@@ -66,6 +70,7 @@ DNN_nb_trainingpts[19]="500"
 declare -A DNN_activation
 DNN_activation[0]="tanh"
 DNN_activation[1]="relu"
+#DNN_activation[1]="LeakyReLU"
 declare -A DNN_nb_layers
 DNN_nb_layers[0]="3"
 DNN_nb_layers[1]="4"
@@ -80,9 +85,9 @@ declare -r DNN_blocktype="default"
 declare -r DNN_initializer="uniform"
 declare -r DNN_lrn_rate_schedule="exp_decay"
 declare -r DNN_type_loss="customize"
-declare -r DNN_epochs=40501
+declare -r DNN_epochs=50001
 declare -r DNN_show_epoch=100
-declare -r DNN_test_epoch=13500
+declare -r DNN_test_epoch=25000
 declare -r DNN_total_trials=2 # total number of trials, must match the number of trials below
 #declare -r DNN_max_nb_train_pts=20 # number of points to be used in the training <= nb_test_points
 declare -r make_plots=0
@@ -93,29 +98,25 @@ declare -r pmax=7
 if [ "$prob" = 0 ]; then
     declare -r problem="poisson" 
 elif [ "$prob" = 1 ]; then
-    declare -r problem="stokes"  
-elif [ "$prob" = 2 ]; then
-    declare -r problem="NSE" 
-elif [ "$prob" = 3 ]; then
-    declare -r problem="other" 
+    declare -r problem="NSB"  
 fi
 
 
 if [ "$DNN_precision" = "single" ]; then
-    declare -r DNN_error_tol="5e-4"
+    declare -r DNN_error_tol="5e-7"
 elif [ "$DNN_precision" = "double" ]; then
-    declare -r DNN_error_tol="5e-8"
+    declare -r DNN_error_tol="5e-16"
 fi
 
 
 
 
 
-max_trial=1
-max_dim=0
-max_trp=19
-max_ratio=3
-max_fun=1
+max_trial=0  # How many Trials
+max_dim=0    # How many dimensions 
+max_trp=0    # How many training points sets
+max_ratio=1  # Number of set of Nodes
+max_fun=0    # How many activation functions: tanh;relu
 for (( i=0; i <= $max_trial; ++i ))
 do
     if [ "$UseFEM_tn" = 1 ]; then

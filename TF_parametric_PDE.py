@@ -13,6 +13,7 @@ from tensorflow import keras
 from tensorflow.keras import layers, regularizers
 from fenics import *
 import numpy as np
+import hdf5storage
 import time
 import matplotlib.pyplot as plt
 from numpy import linalg as la
@@ -110,21 +111,31 @@ if __name__ == '__main__':
     d         = args.input_dim
     nk        = args.mesh_num
     example   = args.example
-    meshname  = "meshes/obstac%03g.xml"%nk
+    if args.problem =="poisson":
+        meshname  = "meshes/obsta%03g.xml"%nk
+    elif args.problem =="NSB":
+        meshname  = "meshes/ComplexChannel.xml"
     mesh      = Mesh(meshname)
     nn        = FacetNormal(mesh)
     #================================================================
     #  *********** Finite Element spaces ************* #
     #================================================================
     deg = args.FE_degree  
-    Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
-    RTv = FiniteElement('BDM', mesh.ufl_cell(), deg+1)
-    Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
+    if args.problem =="poisson":
+        Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
+        RTv = FiniteElement('BDM', mesh.ufl_cell(), deg+1)
+        Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
+    elif args.problem =="NSB":
+        Ht   = VectorElement('DG', mesh.ufl_cell(), deg+1, dim = 3)
+        Hsig = FiniteElement('BDM', mesh.ufl_cell(), deg+1)# In FEniCS, Hdiv tensors need to be defined row-wise
+        Hu   = VectorElement('DG', mesh.ufl_cell(), deg)
+        Hgam = FiniteElement('DG', mesh.ufl_cell(), deg)    
+        Hh   = FunctionSpace(mesh, MixedElement([Hu,Ht,Hsig,Hsig,Hgam]))
     nvec = Hh.dim()
     #================================================================
     # *********** Trial and test functions ********** #
     #================================================================
-    Utrial       = TrialFunction(Hh)
+    #Utrial       = TrialFunction(Hh)
     soltrue = Function(Hh)
     solDNN  = Function(Hh)
     #================================================================
@@ -193,8 +204,8 @@ if __name__ == '__main__':
 
     if os.path.exists(run_data_filename):
         print('Found FEM train_data file:', run_data_filename)
-        train_data       = sio.loadmat(run_data_filename)
-        sorted(train_data.keys())
+        train_data       = hdf5storage.loadmat(run_data_filename)
+        #sorted(train_data.keys())
         y_in_train_data  = train_data['y_in_train_data']
         All_Train_coeff  = train_data['All_Train_coeff']
         All_Train_coeff  =  All_Train_coeff[range(m),:]
@@ -206,7 +217,7 @@ if __name__ == '__main__':
         #    sys.exit(errstr)
     if os.path.exists(test_data_filename):
         test_data    = sio.loadmat(test_data_filename)
-        sorted(test_data.keys())
+        #sorted(test_data.keys())
         y_in_test_data  = test_data['y_in_test_data']
         All_Test_coeff  = test_data['All_Test_coeff']
         if args.test_pointset == 'CC_sparse_grid':
@@ -525,8 +536,12 @@ if __name__ == '__main__':
                 #var_aux_u =  np.array(u_coef_pred[i, :])
                 # DNN In
                 solDNN.vector().set_local(var_aux_u)
-                u_sol, sigma_FEM   = soltrue.split()
-                uh   , sigma_DNN   = solDNN.split()        
+                if args.problem =="poisson":
+                    u_sol, sigma_FEM   = soltrue.split()
+                    uh   , sigma_DNN   = solDNN.split() 
+                elif args.problem =="NSB":
+                    u_sol, sigma_FEM,_,_,_   = soltrue.split()
+                    uh   , sigma_DNN,_,_,_   = solDNN.split()        
 
                 error_L2u = assemble((u_sol-uh)**2*dx)  
                 error_Hdi = assemble((sigma_FEM-sigma_DNN)**2*dx) # +assemble( ( div(sigma_FEM)- div(sigma_DNN) )**2*dx)  
@@ -538,7 +553,7 @@ if __name__ == '__main__':
             filename = 'results/_'+str(epoch)+'_DNNu.png'
             plt.savefig ( filename )
             plt.close()
-            plot(sigma_DNN)
+            plot(sigma_DNN[0])
             filename = 'results/_'+str(epoch)+'_DNNsigma.png'
             plt.savefig ( filename )
             plt.close()
@@ -560,7 +575,7 @@ if __name__ == '__main__':
             L2u_err_append  = np.append(L2u_err_append, L2u_err)  
             Hdiv_err_append = np.append(Hdiv_err_append, Hdi_err) 
             print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('Testing errors: L4u_e = %4.3e,L2p_e = %4.3e' % (L2u_err,Hdi_err))
+            print('Testing errors: L4u_e = %4.3e,L2sig_e = %4.3e' % (L2u_err,Hdi_err))
             if (res <= error_tol) or (epoch == nb_epochs-1):
                 if res <= best_loss:
                     best_loss   = res

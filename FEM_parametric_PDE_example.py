@@ -1,11 +1,11 @@
 
 #########################################################################
-########################SETUP FEM PROBLEM DATA########################### 
+######################## SETUP FEM PROBLEM DATA ########################### 
 #########################################################################
 # ==============================================================
 # Code solving the possion problem 
-# -a(x,y) \nalba u (x,y) = f ; u = g on \gamma
-# Formulation: Mixed formulation  u \in L^2 sigma \in H(div)
+# D_x(a,u)=0
+# Formulation: Mixed formulation  
 # Boundary conditions:  Natural    = True
 #                       Essential  = False
 # - tensor products
@@ -25,7 +25,8 @@ from dolfin import *
 import sympy2fenics as sf
 import random
 import argparse
-from PDE_data import gen_dirichlet_data
+from PDE_data_poisson import gen_dirichlet_data_poisson
+from PDE_data_NSB     import gen_dirichlet_data_NSB
 def str2exp(s):
     return sf.sympy2exp(sf.str2sympy(s))
 # ==============================================================
@@ -59,7 +60,7 @@ if __name__ == '__main__':
   parser.add_argument("--precision", default = 'double', type = str, help = "Switch for double vs. single precision")
   parser.add_argument("--nb_test_points", default = 1, type = int, help = "Number of points to use in testing (default 1)")
   # PDE solver settings
-  parser.add_argument("--problem", default = 'other', type = str, help = "Defines the PDE problem to solve")
+  parser.add_argument("--problem", default = 'poisson', type = str, help = "Defines the PDE problem to solve")
   parser.add_argument("--mesh_num", default = 2, type = int, help = "Defines the refiniment of the mesh, 1,2,3,4 (default mesh number 2)")
   parser.add_argument("--FE_degree", default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
   parser.add_argument("--example", default = 'other', type = str, help = "Example function to use in the PDE (default other)")
@@ -89,7 +90,10 @@ if __name__ == '__main__':
   d         = args.input_dim
   nk        = args.mesh_num
   example   = args.example
-  meshname  = "meshes/obstac%03g.xml"%nk
+  if args.problem =="poisson":
+    meshname  = "meshes/obsta%03g.xml"%nk
+  elif args.problem =="NSB":
+    meshname  = "meshes/ComplexChannel.xml"
   mesh      = Mesh(meshname)
   All_Train_coeff = []
   All_Test_coeff  = []
@@ -102,17 +106,32 @@ if __name__ == '__main__':
   #================================================================
   #  *********** Finite Element spaces ************* #
   #================================================================
-  deg = args.FE_degree  
-  Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
-  RTv = FiniteElement('BDM', mesh.ufl_cell(), deg+1)
-  Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
+  deg = args.FE_degree
+  if args.problem =="poisson":
+    Pk  = FiniteElement('DG', mesh.ufl_cell(), deg)
+    RTv = FiniteElement('BDM', mesh.ufl_cell(), deg+1)
+    Hh  = FunctionSpace(mesh, MixedElement([Pk,RTv]))
+  elif args.problem =="NSB":
+    Ht   = VectorElement('DG', mesh.ufl_cell(), deg+1, dim = 3)
+    Hsig = FiniteElement('BDM', mesh.ufl_cell(), deg+1)# In FEniCS, Hdiv tensors need to be defined row-wise
+    Hu   = VectorElement('DG', mesh.ufl_cell(), deg)
+    Hgam = FiniteElement('DG', mesh.ufl_cell(), deg) 
+    #R0   = FiniteElement('R', mesh.ufl_cell(), 0)    
+    Hh   = FunctionSpace(mesh, MixedElement([Hu,Ht,Hsig,Hsig,Hgam]))
+   
+
   nvec = Hh.dim()
+  _hmin = mesh.hmin()
+  _hmax = mesh.hmax()
+  print (" ****** Total DoF = ", Hh.dim())
+  print (" ****** hmin = ", _hmin)
+  print (" ****** hmax = ", _hmax)
   #================================================================
   # *********** Trial and test functions ********** #
   #================================================================
-  Utrial       = TrialFunction(Hh)
-  Usol         = Function(Hh)
-  W_trainsol   = Function(Hh)
+  #Utrial       = TrialFunction(Hh)
+  #Usol         = Function(Hh)
+  #W_trainsol   = Function(Hh)
   # set the number of training points 
   m     = args.nb_train_points
   # set the maximum number of training points 
@@ -204,9 +223,9 @@ if __name__ == '__main__':
     print('       ____________________________________________________________________')
 
     y_in_train = np.transpose(np.random.uniform(-1.0,1.0,(m,d)))
-    U = []
+    #U = []
     print('Using uniform random training points with m =', m)
-    K = 0
+    K = nvec
     print('Generating the training data')
     
     # Generate the training data
@@ -216,8 +235,12 @@ if __name__ == '__main__':
 
       # get the training data inputs 
       z = y_in_train[:,i]
+      if args.problem =="poisson":
+        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+      elif args.problem =="NSB":
+        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
 
-      coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data(z,mesh, Hh, example,i,d,args.train)
+      
       All_Train_coeff.append(coeff_each_m)
 
 
@@ -225,7 +248,7 @@ if __name__ == '__main__':
       _H2snorm_train.append(norm_Hdiv)
       
       print('====================================================================')
-      print('i = ', i, 'L2u=  %2.5g ' % norm_L2, 'Hdsig=  %2.5g ' % norm_Hdiv,'y_train= ', z)
+      print('i = ', i, 'L2u=  %2.5g ' % norm_L2, 'Hdsig=  %2.5g ' % norm_Hdiv,'y_train= ', )
       print('====================================================================')
     run_data = {}
     run_data['d']              = d
@@ -266,7 +289,10 @@ if __name__ == '__main__':
       coeff_each_m = []
       z = y_in_test[:,i]
           
-      coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data(z,mesh, Hh, example,i,d,args.train)
+      if args.problem =="poisson":
+        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+      elif args.problem =="NSB":
+        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
       All_Test_coeff.append(coeff_each_m)
  
       _L2unorm_test.append(norm_L2)
