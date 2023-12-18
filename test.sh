@@ -6,9 +6,7 @@ echo "CONTROL: starting runs on test datasets"
 
 
 #SHARED VARIABLES ; NOT FREQUENLTY CHANGED  
-declare -r training_ptset="uniform_random"
 declare -r testing_ptset="CC_sparse_grid" #"uniform_random"  CC_sparse_grid
-declare -r example="other" # logKL_expansion ; other;
 declare -r SG_level=1  #set to 7
 declare -r mesh_num=9
 
@@ -17,10 +15,15 @@ declare -r mesh_num=9
 declare -r UseFEM_tn=0
 declare -r UseFEM_ts=0
 declare -r UseDnn=1
-declare -r FE_degree=1
+declare -r FE_degree=0
+
+declare -r DNN_whichfun=1     #Declare which function to approximate 0:_u_; 1:_p_; 2:_u_p_
+declare -r prob=1            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
+
+
 declare -A input_dim
 input_dim[0]="5"
-#input_dim[1]="10"
+input_dim[1]="10"
 #input_dim[1]="10"
 
 declare -A trials
@@ -35,12 +38,14 @@ trials[4]="5"
 #trials[8]="9"
 #trials[9]="10"
 
+declare -r training_ptset="uniform_random"
+declare -r example="other" # logKL_expansion ; other;
 
 # FEM PARAMETERS
 
-declare -r train_pts=10     # change this to the total number of training points TO BE CREATED if trainn =1
+declare -r train_pts=20     # change this to the total number of training points TO BE CREATED if trainn =1
 declare -r nb_test_points=10 # change this for uniform_random only
-declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "other" =3
+
 #declare -r train_pts=10
 #train_pts[0]="5"
 #train_pts[1]="10"
@@ -48,7 +53,7 @@ declare -r prob=0            # options:  "poisson"=0 ; "stokes"=1 ; "NSE"=2 ; "o
 # DNN PARAMETERS
 declare -A DNN_nb_trainingpts # ->  so it has to be greater than 5
 DNN_nb_trainingpts[0]="10"
-DNN_nb_trainingpts[1]="50"
+DNN_nb_trainingpts[1]="20"
 DNN_nb_trainingpts[2]="75"
 DNN_nb_trainingpts[3]="100"
 DNN_nb_trainingpts[4]="125"
@@ -85,13 +90,24 @@ declare -r DNN_blocktype="default"
 declare -r DNN_initializer="uniform"
 declare -r DNN_lrn_rate_schedule="exp_decay"
 declare -r DNN_type_loss="customize"
-declare -r DNN_epochs=50001
+declare -r DNN_epochs=401
 declare -r DNN_show_epoch=100
-declare -r DNN_test_epoch=25000
+declare -r DNN_test_epoch=200
 declare -r DNN_total_trials=2 # total number of trials, must match the number of trials below
-#declare -r DNN_max_nb_train_pts=20 # number of points to be used in the training <= nb_test_points
+
+
+
 declare -r make_plots=0
 declare -r pmax=7
+
+
+if [ "$DNN_whichfun" = 0 ]; then
+    declare -r whichfun="_u_" 
+elif [ "$DNN_whichfun" = 1 ]; then
+    declare -r whichfun="_p_"  
+elif [ "$DNN_whichfun" = 2 ]; then
+    declare -r whichfun="_u_p_"  
+fi
 
 
 
@@ -103,9 +119,9 @@ fi
 
 
 if [ "$DNN_precision" = "single" ]; then
-    declare -r DNN_error_tol="5e-7"
+    declare -r DNN_error_tol="5e-3"
 elif [ "$DNN_precision" = "double" ]; then
-    declare -r DNN_error_tol="5e-16"
+    declare -r DNN_error_tol="5e-8"
 fi
 
 
@@ -114,8 +130,8 @@ fi
 
 max_trial=0  # How many Trials
 max_dim=0    # How many dimensions 
-max_trp=0    # How many training points sets
-max_ratio=1  # Number of set of Nodes
+max_trp=1    # How many training points sets
+max_ratio=0  # Number of set of Nodes
 max_fun=0    # How many activation functions: tanh;relu
 for (( i=0; i <= $max_trial; ++i ))
 do
@@ -153,7 +169,7 @@ do
                 do
                     for (( l=0; l <= $max_fun; ++l ))
                     do
-                        python3 TF_parametric_PDE.py  --example $example --Use_batching $Use_batching --DNN_show_epoch $DNN_show_epoch --DNN_test_epoch $DNN_test_epoch --DNN_max_nb_train_pts $train_pts --FE_degree $FE_degree --mesh_num $mesh_num --problem $problem --nb_train_points ${DNN_nb_trainingpts[$j]} --nb_test_points $nb_test_points  --train_pointset $training_ptset --nb_trials 10 --make_plots $make_plots --test_pointset $testing_ptset --quiet 0 --input_dim ${input_dim[$p]}  --trial_num ${trials[$i]}   --SG_level $SG_level   --run_ID $run_ID3 --DNN_activation ${DNN_activation[$l]}  --DNN_precision $DNN_precision --DNN_error_tol $DNN_error_tol --DNN_optimizer $DNN_optimizer --DNN_loss_function $DNN_loss_function --DNN_blocktype $DNN_blocktype --DNN_initializer $DNN_initializer --DNN_lrn_rate_schedule $DNN_lrn_rate_schedule --DNN_type_loss $DNN_type_loss --DNN_epochs $DNN_epochs --DNN_total_trials $DNN_total_trials --DNN_nb_layers ${DNN_nb_layers[$k]}  #&
+                        python3 TF_parametric_PDE_2FUN.py  --example $example --Use_batching $Use_batching --DNN_show_epoch $DNN_show_epoch --DNN_test_epoch $DNN_test_epoch --DNN_max_nb_train_pts $train_pts --FE_degree $FE_degree --mesh_num $mesh_num --problem $problem --nb_train_points ${DNN_nb_trainingpts[$j]} --nb_test_points $nb_test_points  --train_pointset $training_ptset --nb_trials 10 --make_plots $make_plots --test_pointset $testing_ptset --quiet 0 --input_dim ${input_dim[$p]}  --trial_num ${trials[$i]}   --SG_level $SG_level   --run_ID $run_ID3 --DNN_activation ${DNN_activation[$l]}  --DNN_precision $DNN_precision --DNN_error_tol $DNN_error_tol --DNN_optimizer $DNN_optimizer --DNN_loss_function $DNN_loss_function --DNN_blocktype $DNN_blocktype --DNN_initializer $DNN_initializer --DNN_lrn_rate_schedule $DNN_lrn_rate_schedule --DNN_type_loss $DNN_type_loss --DNN_epochs $DNN_epochs --DNN_total_trials $DNN_total_trials --DNN_nb_layers ${DNN_nb_layers[$k]} --whichfun $whichfun #&
                     done
                 done
             done

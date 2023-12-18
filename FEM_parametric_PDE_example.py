@@ -95,8 +95,10 @@ if __name__ == '__main__':
   elif args.problem =="NSB":
     meshname  = "meshes/ComplexChannel.xml"
   mesh      = Mesh(meshname)
-  All_Train_coeff = []
-  All_Test_coeff  = []
+  Train_coeff_u = []
+  Train_coeff_p = []
+  Test_coeff_u  = []
+  Test_coeff_p  = []
   _L2unorm_train  = []
   _H2snorm_train  = []
   _L2unorm_test   = []
@@ -236,31 +238,38 @@ if __name__ == '__main__':
       # get the training data inputs 
       z = y_in_train[:,i]
       if args.problem =="poisson":
-        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+        coeff_each_m, norm_u_1, norm_u_2 = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+        Train_coeff_u.append(coeff_each_m)
+        
+
+
       elif args.problem =="NSB":
-        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
+        coeff_each_m_u,coeff_each_m_p, norm_u_1, norm_u_2 = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
+        Train_coeff_u.append(coeff_each_m_u)
+        Train_coeff_p.append(coeff_each_m_p)
 
-      
-      All_Train_coeff.append(coeff_each_m)
+
+    
 
 
-      _L2unorm_train.append(norm_L2)
-      _H2snorm_train.append(norm_Hdiv)
+      _L2unorm_train.append(norm_u_1)
+      _H2snorm_train.append(norm_u_2)
       
       print('====================================================================')
-      print('i = ', i, 'L2u=  %2.5g ' % norm_L2, 'Hdsig=  %2.5g ' % norm_Hdiv,'y_train= ', )
+      print('i = ', i, 'L2u=  %2.5g ' % norm_u_1, 'Lsig=  %2.5g ' % norm_u_2,'y_train= ',z )
       print('====================================================================')
     run_data = {}
     run_data['d']              = d
     run_data['K']              = K
-    #run_data['m_max']          = m_max
     run_data['m_train']        = m
     run_data['y_in_train_data']= y_in_train
     run_data['mesh_op']        = nk
     run_data['FE_degree']      = deg
-    run_data['All_Train_coeff'] = All_Train_coeff
-    run_data['_L2unorm_train']       = _L2unorm_train
-    run_data['_H2snorm_train']       = _H2snorm_train
+    run_data['Train_coeff_u']  = Train_coeff_u
+    if args.problem =="NSB":
+      run_data['Train_coeff_p'] = Train_coeff_p
+    run_data['_L2unorm_train']           = _L2unorm_train
+    run_data['_H2snorm_train']           = _H2snorm_train
     run_data['fenics_mesh_coords']       = np.array(mesh.coordinates())
     run_data['fenics_mesh_cells']        = np.array(mesh.cells())
     run_data['fenics_mesh_num_cells']    = np.array(mesh.num_cells())
@@ -290,19 +299,24 @@ if __name__ == '__main__':
       z = y_in_test[:,i]
           
       if args.problem =="poisson":
-        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+        coeff_each_m, norm_u_1, norm_u_2 = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+        Test_coeff_u.append(coeff_each_m)
+        
+
+
       elif args.problem =="NSB":
-        coeff_each_m, norm_L2, norm_Hdiv = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
-      All_Test_coeff.append(coeff_each_m)
+        coeff_each_m_u,coeff_each_m_p, norm_u_1, norm_u_2 = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
+        Test_coeff_u.append(coeff_each_m_u)
+        Test_coeff_p.append(coeff_each_m_p)
  
-      _L2unorm_test.append(norm_L2)
-      _H2snorm_test.append(norm_Hdiv)
+      _L2unorm_test.append(norm_u_1)
+      _H2snorm_test.append(norm_u_2)
       if i == 0:
         K = len(coeff_each_m)
         print('FE degrees of freedom K = ', K)
 
       print('====================================================================')
-      print('i = ', i, 'L2u=  %2.4g ' % norm_L2,'y_test= ', z)
+      print('i = ', i, 'L2u=  %2.4g ' % norm_u_1,'y_test= ', z)
       print('====================================================================')
     test_data ={}
     test_data['m_test']         = m_test
@@ -315,7 +329,9 @@ if __name__ == '__main__':
     run_data['y_in_test_data'] = y_in_test
     run_data['mesh_op']        = nk
     run_data['FE_degree']      = deg
-    run_data['All_Test_coeff'] = All_Test_coeff
+    run_data['Test_coeff_u'] = Test_coeff_u
+    if args.problem =="NSB":
+      run_data['Test_coeff_p'] = Test_coeff_p
     run_data['_L2unorm_test']       = _L2unorm_test
     run_data['_H2snorm_test']       = _H2snorm_test
     if args.test_pointset == 'CC_sparse_grid':

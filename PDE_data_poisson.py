@@ -91,15 +91,18 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     solve(FF == 0, Usol, J=Tang)
     uh,Rsigh = Usol.split()
     if train:
-        if i<0:
+        if i<1:
             plot(uh)
             filename = 'poisson_nonlinear_u'+str(i)+'.png'
             plt.savefig ( filename )
             plt.close()
-            plot(-Rsigh)
+            plot(Rsigh)
             filename = 'poisson_nonlinear_sigma'+str(i)+'.png'
             plt.savefig ( filename )
             plt.close()
+            folder1 = str('/home/sebanthalas/Documents/NE_NOV23/uh_REA.pvd')
+            vtkfile = File(folder1)
+            vtkfile << uh
         # Change the following to W_trainsol.num_sub_spaces() if there 
         # are more spaces to approximate. If only u, leave as 1.
         num_subspaces = W_trainsol.num_sub_spaces() # change to -> W_trainsol.num_sub_spaces() when searching other 
@@ -107,9 +110,6 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
         for j in range(num_subspaces):
             coef_one_trial = coeff_extr(j,Hh,Usol)
             coeff_each_m.append(coef_one_trial)
-        #folder1 = str('/home/sebanthalas/Documents/NE_NOV23/uh_REA.pvd')
-        #vtkfile = File(folder1)
-        #vtkfile << uh
     else:
         coeff_each_m = Usol.vector().get_local()
         

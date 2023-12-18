@@ -57,20 +57,20 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     # *********** Variable coefficients ********** #
 
     #uinlet = Expression(('0','10.0*x[0]*(1.-x[0])'), degree = 2)
-    eta = Expression('0.1 + 0.01*sin(x[0])*sin(x[1])', degree=3)
+    #eta = Expression('0.1 + 0.01*sin(x[0])*sin(x[1])', degree=3)
     if example == 'other':
         pi     = str(3.14159265359)
         amean  = str(2)
         string = '1.89 + '
         for j in range(d):
-            term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
+            term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
             string =  string + '+' + term
     string   =  '('+string+')' 
     mu       = Expression(str2exp(string), degree=3, domain=mesh)
     #mu = Expression('exp(-x[0]*x[1])', degree = 3)
     # *********** Variable coefficients ********** #
 
-    uinlet = Expression(('0','5.0*x[0]*(1.-x[0])'), degree = 2)
+    uinlet = Expression(('0','1.0*x[0]*(1.-x[0])'), degree = 2)
     #eta    = Expression('0.1 + 0.01*sin(x[0])*sin(x[1])', degree=3)
     eta = Expression('0.1+x[0]*x[0]+x[1]*x[1]', degree=2)
     l      = 1 
@@ -90,8 +90,10 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     #================================================================
     # Boundary condition
     #================================================================ 
-    coeff_each_m =[]
+    coeff_each_m_u =[]
+    coeff_each_m_p =[]
     # *********** Trial and test functions ********** #
+
     Trial = TrialFunction(Hh)
     Sol   = Function(Hh)
     W_trainsol = Function(Hh)
@@ -126,8 +128,8 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     cc  = eta * dot(u,v)*dx
 
     #+ xi*tr(tau+outer(v,v))*dx ???
-    AA = a + b1 + b2 + b + bbt + bb - cc 
-    FF = dot(tau*nn,uinlet)*ds(inlet) - dot(f,v)*dx
+    AA   = a + b1 + b2 + b + bbt + bb - cc 
+    FF   = dot(tau*nn,uinlet)*ds(inlet) - dot(f,v)*dx
     Nonl = AA - FF + nitsche * dot((sigma+outer(u,u))*nn,tau*nn)*ds(outlet)
     #Nonl = AA - FF + nitsche * dot((sigma)*nn,tau*nn)*ds(outlet)
 
@@ -147,8 +149,13 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     sigmah = as_tensor((sigh1,sigh2))
     gammah = as_tensor(((0,gamh_),(-gamh_,0)))
     ph = project(-1/ndim*tr(sigmah + outer(uh,uh)),Ph) 
+    coef_one_trial = uh.vector().get_local()
+    coeff_each_m_u.append(coef_one_trial)
+    coef_one_trial = ph.vector().get_local()
+    coeff_each_m_p.append(coef_one_trial)
+    
     if train:
-        if i<10:
+        if i<0:
             plot(uh)
             filename = 'nonlinear_uh'+str(i)+'.png'
             plt.savefig ( filename )
@@ -157,18 +164,12 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
             filename = 'nonlinear_ph'+str(i)+'.png'
             plt.savefig ( filename )
             plt.close()
-        #num_subspaces = W_trainsol.num_sub_spaces()
-        num_subspaces = 1 # Select 1 when only obtaining the coefficients for u       
-        for j in range(num_subspaces):
-            coef_one_trial = coeff_extr(j,Hh,Sol)
-            coeff_each_m.append(coef_one_trial)
-            coeff_each_m_p = ph.vector().get_local()
-            coeff_each_m.append(coeff_each_m_p)
-        folder1 = str('/home/sebanthalas/Documents/NE_NOV23/u_REA.pvd')
-        vtkfile = File(folder1)
-        vtkfile << uh
-    else:
-        coeff_each_m = Sol.vector().get_local()
+            folder1 = str('/home/sebanthalas/Documents/NE_NOV23/u_REA.pvd')
+            vtkfile = File(folder1)
+            vtkfile << uh
+ 
+
+    
         
 
     
@@ -178,7 +179,7 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     
 
 
-    return coeff_each_m, norm_L4, norm_L2
+    return coeff_each_m_u,coeff_each_m_p, norm_L4, norm_L2
 
 
 
