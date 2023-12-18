@@ -20,7 +20,10 @@ fenics-fiat                  2019.2.0.dev0
 TASMANIAN                    7.3
 
 Examples:
+Poisson
+--------------------------------------------------
 ![poisson_nonlinear_u0](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/16d76d0e-e032-4868-888c-043992782e3c)
- 
 
+NSB
+-----------------------------------------------------
 ![nonlinear_uh9](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/689a6767-1b97-449e-877c-1ebdf47712d3)
