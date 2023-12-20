@@ -24,245 +24,16 @@ import random
 import argparse
 import threading
 import time
-
+from callbacks import EarlyStoppingPredictHistory
 # ==============================================================
-# Boundary conditions
-# Zero on the boundary; one on the inner obstacle
-#                    _______________________
-#                    |                     |
-#                    |     --              |
-#                    |    |  |             |
-#                    |     --              |
-#                    |                     |
-#                    _______________________ 
+# CODE APPROXIMATING THE SOLUTION OF A PDE
+# Examples: possion (u) equation or NSB (u;p) with a parametric 
+# variable.
 #
 # ==============================================================
-def extract_specific_function(T_list,k):
-    Z = []
-    num = len(T_list)
-    for  j in range(num):
-      Z.append(T_list[j][k])
-    coeff = np.array(Z).T
-    return coeff
+
 def str2exp(s):
     return sf.sympy2exp(sf.str2sympy(s))
-def Get_testing_u(u_pred,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights):
-    L2u_err =0.0
-    for i in range(m_test):
-
-        var_aux_u_real = np.array(_allcoeff_to_u[i,:]) 
-        var            = u_pred[i,:]
-        var_aux_u      = np.array(var)
-
-        solDNN.vector().set_local(var_aux_u)
-        
-        if args.problem =="poisson":
-            soltrue.vector().set_local(var_aux_u_real)
-            u_sol, _  = soltrue.split()
-            uh   , _  = solDNN.split() 
-            norm_u     = assemble((u_sol)**2*dx) 
-            error_L2u  = assemble((u_sol-uh)**2*dx)/norm_u 
-
-        if args.problem =="NSB":
-            soltrue.vector().set_local(var_aux_u_real[0])
-            u_sol, _, _, _, _   = soltrue.split()
-            uh   , _, _, _, _  = solDNN.split() 
-            norm_u     = sqrt(sqrt(assemble( ((u_sol)**2)**2*dx)))
-            error_L2u  = sqrt(sqrt(assemble( ((u_sol-uh)**2)**2*dx)))/norm_u  
-
-
-        L2u_err   += error_L2u * w_test_weights[i]
-
-    return L2u_err,uh
-def Get_testing_p(p_pred,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h):
-    L2p_err =0.0
-    for i in range(m_test):
-
-        var_aux_p_real = np.array(_allcoeff_to_p[i,:]) 
-        var_p          = p_pred[i,:]
-        var_aux_p_DNN  = np.array(var_p)
-
-        PDNN_h.vector().set_local(var_aux_p_DNN)
-        PSOL_h.vector().set_local(var_aux_p_real[0])
-
-        norm_p     = assemble((PSOL_h)**2*dx) 
-        error_L2p  = sqrt(assemble((PDNN_h-PSOL_h)**2*dx) )/norm_p 
-        L2p_err   += error_L2p * w_test_weights[i]
-
-    return L2p_err,PDNN_h
-
-def DNN_architecture_layers(d,nb_layers,nb_nodes_per_layer,activation,weight_bias_initializer,output_dim):
-    all_layers_u = []
-    inputs       = keras.Input(shape=(d,), name = 'input_y')
-    branch_u     = tf.keras.layers.Dense(nb_nodes_per_layer, 
-                                                        activation=activation,
-                                                        name='branch_f_',
-                                                        kernel_initializer= weight_bias_initializer,
-                                                        bias_initializer  = weight_bias_initializer,
-                                                        dtype=tf.float32)(inputs) 
-    # Append each layer
-    all_layers_u.append(branch_u)
-    
-    for layer in range(nb_layers):
-        layer_name_u    = 'dense_f_Layer' + str(layer)
-        this_layer_u = tf.keras.layers.Dense(nb_nodes_per_layer, 
-                                            activation=activation,
-                                            name=layer_name_u,
-                                            kernel_initializer= weight_bias_initializer,
-                                            bias_initializer= weight_bias_initializer,
-                                            dtype=tf.float32)(all_layers_u[layer])
-
-        all_layers_u.append(this_layer_u)
-               
-    final_num = layer+1
-    first_output_layer_u    = tf.keras.layers.Dense(output_dim,
-                                                activation= tf.keras.activations.linear,
-                                                trainable=True,
-                                                use_bias=False,
-                                                name='output_Phi_',
-                                                kernel_initializer=weight_bias_initializer,
-                                                dtype=tf.float32)(all_layers_u[final_num])  
-    return inputs, first_output_layer_u      
-def function_DNN_u(DNN_u,nb_epochs,BATCH_SIZE,m,x_train_data,u_train_data,y_test,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights,d,error_tol,DNN_model_final_savedir):
-    DNN_u.summary()
-    l2_error_data   = np.array([])
-    Lu_err_append   = np.array([])
-    best_loss=10
-    for epoch in range(nb_epochs):
-        #For each epoch we select random entries of training data
-        I_ad       = np.array([])
-        I          = np.array([])
-        batch_size = int(BATCH_SIZE)
-        I_i        = range(m)
-        I_ad       = random.sample(I_i, batch_size)
-        I          = np.append(I, I_ad).astype(int)
-        # Data inside the domain
-        y_in     = tf.cast(np.asarray(x_train_data)[I,:], tf.float32)
-        u_in     = tf.cast(np.asarray(u_train_data)[I,:], tf.float32)
-        # gradient descent
-        GD_u(y_in,u_in)
-        # compute loss
-        res = get_mse_u(y_in,u_in)
-        l2_error_data = np.append(l2_error_data, res)
-        if (epoch % args.DNN_show_epoch ==0):
-            print('============================================================')
-            print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('============================================================')
-        if epoch % args.DNN_test_epoch == 0:     
-            u_pred = DNN_u(y_test)   
-            u_coef_pred = tf.cast(u_pred, dtype= tf.float32)
-            Lu_err,uh = Get_testing_u(u_coef_pred,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights)
-
-            #plot the approximation
-            plot(uh)
-            filename = 'results/_'+str(epoch)+'_DNNu.png'
-            plt.savefig ( filename )
-            plt.close()
-
-            Lu_err = np.sqrt(np.abs(Lu_err/2**(d)))
-            Lu_err_append= np.append(Lu_err_append, Lu_err)  
-            print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('Testing errors: Lu_e = %4.3e' % (Lu_err))
-            if (res <= error_tol) or (epoch == nb_epochs-1):
-                if res <= best_loss:
-                     print('************')
-                     print(res)
-                     print('************')
-                     best_loss   = res
-                     best_epoch  = epoch
-                     DNN_u.save(DNN_model_final_savedir+'_u')
-    model = tf.keras.models.load_model(DNN_model_final_savedir+'_u')
-    u_pred = model(y_test) 
-    u_coef_pred = tf.cast(u_pred, dtype= tf.float32)
-    Lu_err,uh = Get_testing_u(u_pred,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights)
-
-    Lu_err = np.sqrt(np.abs(Lu_err/2**(d)))
-    Lu_err_append= np.append(Lu_err_append, Lu_err)  
-    _minL2=np.min(Lu_err_append)
-
-    print('Best DNN     - training Testing errors: Lu_e = %4.3e' % (Lu_err))
-    print('Best Overall -  Testing errors: Lu_e = %4.3e' % (_minL2))
-    # Save data
-    test_results = {}
-    test_results['L2u_err_af_'+activation +'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'_u']   = Lu_err_append
-    test_results['residual_af_'+activation+'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'_u']   = l2_error_data
-    test_results['Best_epoch_u']   = best_epoch
-
-    # save the resulting mat file with scipy.io
-    sio.savemat(result_folder + '/' + key_DNN+'_final_u.mat', test_results)
-         
-
-def function_DNN_p(DNN_p,nb_epochs,BATCH_SIZE,m,x_train_data,p_train_data,y_test,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h,d,error_tol,DNN_model_final_savedir):
-    DNN_p.summary()
-    l2_error_data   = np.array([])
-    L2p_err_append  = np.array([])
-    best_loss=10
-    for epoch in range(nb_epochs):
-        #For each epoch we select random entries of training data
-        I_ad       = np.array([])
-        I          = np.array([])
-        batch_size = int(BATCH_SIZE)
-        I_i        = range(m)
-        I_ad       = random.sample(I_i, batch_size)
-        I          = np.append(I, I_ad).astype(int)
-        # Data inside the domain
-        y_in     = tf.cast(np.asarray(x_train_data)[I,:], tf.float32)
-        p_in     = tf.cast(np.asarray(p_train_data)[I,:], tf.float32)
-        # gradient descent
-        GD_p(y_in,p_in)
-        # compute loss
-        res = get_mse_p(y_in,p_in)
-        l2_error_data = np.append(l2_error_data, res)
-        if (epoch % args.DNN_show_epoch ==0):
-            print('============================================================')
-            print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('============================================================')
-        if epoch % args.DNN_test_epoch == 0: 
-            p_pred = DNN_p(y_test)  
-            p_coef_pred = tf.cast(p_pred, dtype= tf.float32)
-
-            
-            L2p_err,ph = Get_testing_p(p_coef_pred,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h)
-            
-            #plot the approximation
-            plot(ph)
-            filename = 'results/_'+str(epoch)+'_DNNp.png'
-            plt.savefig ( filename )
-            plt.close()
-
-            L2p_err = np.sqrt(np.abs(L2p_err/2**(d)))
-            L2p_err_append= np.append(L2p_err_append, L2p_err)  
-            print('Epochs: ' + str(epoch) + ' | Error: ' + str("{:.4e}".format(res)) )
-            print('Testing errors: Lp_e = %4.3e' % (L2p_err))
-            if (res <= error_tol) or (epoch == nb_epochs-1):
-                if res <= best_loss:
-                     print('************')
-                     print(res)
-                     print('************')
-                     best_loss   = res
-                     best_epoch  = epoch
-                     DNN_p.save(DNN_model_final_savedir+'_p')
-    model = tf.keras.models.load_model(DNN_model_final_savedir+'_p')
-    p_pred = model(y_test) 
-    p_coef_pred = tf.cast(p_pred, dtype= tf.float32)
-    L2p_err,ph = Get_testing_p(p_coef_pred,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h)
-
-    L2p_err = np.sqrt(np.abs(L2p_err/2**(d)))
-    L2p_err_append= np.append(L2p_err_append, L2p_err) 
-    _minL2=np.min(L2p_err_append)
-
-    print('Best DNN     - training Testing errors: Lp_e = %4.3e' % (L2p_err))
-    print('Best Overall -  Testing errors: Lp_e = %4.3e' % (_minL2))
-
-    # Save data
-    test_results = {}
-    test_results['L2p_err_af_'+activation +'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'_p']   = L2p_err_append
-    test_results['residual_af_'+activation+'_Npl'+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_m_'+str(m)+'_trial_'+str(trial)+'_dim_'+str(d)+'_problem_'+args.problem+'_p']   = l2_error_data
-    test_results['Best_epoch_p']   = best_epoch
-
-    # save the resulting mat file with scipy.io
-    sio.savemat(result_folder + '/' + key_DNN+'_final_p.mat', test_results)
-            
 
 
 
@@ -332,6 +103,8 @@ if __name__ == '__main__':
     np_seed = trial
     np.random.seed(np_seed)
     print('Starting DNN training with tf_seed = %d and np_seed = %d' % (tf_seed, np_seed))
+
+    fenics_params = {}
     # set the input dimension
     d         = args.input_dim
     nk        = args.mesh_num
@@ -355,29 +128,32 @@ if __name__ == '__main__':
         Hsig = FiniteElement('BDM', mesh.ufl_cell(), deg+1)# In FEniCS, Hdiv tensors need to be defined row-wise
         Hu   = VectorElement('DG', mesh.ufl_cell(), deg)
         Hgam = FiniteElement('DG', mesh.ufl_cell(), deg)    
-        Hh   = FunctionSpace(mesh, MixedElement([Hu,Ht,Hsig,Hsig,Hgam]))
-        Ph = FunctionSpace(mesh,'CG',1)
-        PDNN_h       = Function(Ph)
-        PSOL_h       = Function(Ph)
+        if args.whichfun =='_p_':
+            Hh   = FunctionSpace(mesh,'CG',1)
+        else:
+            Hh   = FunctionSpace(mesh, MixedElement([Hu,Ht,Hsig,Hsig,Hgam]))
     nvec = Hh.dim()
     #================================================================
     # *********** Trial and test functions ********** #
     #================================================================
-    #Utrial       = TrialFunction(Hh)
-    soltrue = Function(Hh)
-    solDNN  = Function(Hh)
+    fenics_params['mesh']      = mesh
+    fenics_params['V']         = Hh
+    #if args.whichfun =='_p_' and args.problem =="NSB":
+    #    fenics_params['V']         = Ph
+    fenics_params['example']   = args.example
+    fenics_params['input_dim'] = d
+
     #================================================================
     # *********** DNN settings ********** #
     #================================================================
     s = args.DNN_nb_layers  
     nb_layers          = 1*s
     nb_nodes_per_layer = 10*s
-    nb_nodes_per_layer_RT = 10*s
+    
     
 
     start_time         = time.time() 
     activation         = args.DNN_activation  
-    activation_te      = args.DNN_activation 
     optimizer          = args.DNN_optimizer 
     initializer        = args.DNN_initializer 
     lrn_rate_schedule  = args.DNN_lrn_rate_schedule #'exp_decay'
@@ -389,8 +165,8 @@ if __name__ == '__main__':
     nb_epochs          = args.DNN_epochs 
     nb_trials          = args.DNN_total_trials
     best_loss          = 10
-    Id = Constant(((1.,0.),(0.,1.)))
-    pi = 3.14159265359
+    #Id = Constant(((1.,0.),(0.,1.)))
+    #pi = 3.14159265359
     m_test = args.nb_test_points
 
     # Look for a different number of m_test (possibly from using Tasmanian)
@@ -399,7 +175,7 @@ if __name__ == '__main__':
         getting_m_test    = sio.loadmat(test_results_filename)
         sorted(getting_m_test.keys())
         m_test = getting_m_test['m_test'][0,0]
-        print('foundm_m:',m_test)
+        print('Number of testing points found_m:',m_test)
     # Gives m the   number of usable  trining points ; Gives the number of total points available to training
     m       = args.nb_train_points      # Actual number of trianing points used during training
     m_train = args.DNN_max_nb_train_pts # Max number of training points available 
@@ -407,7 +183,7 @@ if __name__ == '__main__':
     # unique key for naming results
     key          = str(m_train).zfill(6) + '_pnts_%2.2e' % (float(args.error_tol)) + '_tol_'+str(d)+'_d'
     key_test     = str(m_test).zfill(6) + '_pnts_%2.2e' % (float(args.error_tol)) + '_tol_'+str(d)+'_d'
-    key_DNN = str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer +'_d_'+str(d)+ '_optimizer_' \
+    key_DNN = 'FUN'+str(args.whichfun)+'/'+str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer +'_d_'+str(d)+ '_optimizer_' \
               + args.DNN_loss_function + '_loss_' + args.DNN_activation  + '_' + str(args.DNN_nb_layers) + 'x' \
               + str(nb_nodes_per_layer) + '_' + args.DNN_blocktype
     scratchdir_train    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
@@ -432,41 +208,49 @@ if __name__ == '__main__':
 
     if os.path.exists(run_data_filename):
         print('Found FEM train_data file:', run_data_filename)
-        train_data       = hdf5storage.loadmat(run_data_filename)
-        #sorted(train_data.keys())
-        y_in_train_data  = train_data['y_in_train_data']
-        Train_coeff_u  = train_data['Train_coeff_u']
-        Train_coeff_u  =  Train_coeff_u[range(m),:]
+        train_data       =  hdf5storage.loadmat(run_data_filename)
+        y_in_train_data  =  train_data['y_in_train_data']
+        Train_coeff_u    =  train_data['Train_coeff_u']
+        Train_coeff_u    =  Train_coeff_u[range(m),:]
         print('===================================================================')
         print('TRAIN DATA FOUND number of training points available',len(Train_coeff_u))
         print('===================================================================')
         if args.problem =="NSB":
-            Train_coeff_p  = train_data['Train_coeff_p']
-            Train_coeff_p  =  Train_coeff_p[range(m),:]
+            if args.whichfun =='_p_':
+                Train_coeff_u  = train_data['Train_coeff_p']
+                Train_coeff_u  =  Train_coeff_u[range(m),:]
 
+           
+    #####################################################################################################################
+    # FROM HERE ON EVERYTHONG IS IN TERMS OF -> u
+    #####################################################################################################################
 
-
+    # Extract the coefficients of all the functions and output dimensions
+    u_train_data         =  Train_coeff_u # extract_specific_function(Train_coeff_u,0).T
+    output_dim_u         = u_train_data.shape[1]
+    
 
     if os.path.exists(test_data_filename):
-        test_data    = sio.loadmat(test_data_filename)
+        test_data       = sio.loadmat(test_data_filename)
         #sorted(test_data.keys())
         y_in_test_data  = test_data['y_in_test_data']
         Test_coeff_u    = test_data['Test_coeff_u']
+
         if args.problem =="NSB":
-            Test_coeff_p  = test_data['Test_coeff_p']
-            
-
-
+            if args.whichfun =='_p_':
+                Test_coeff_u  = test_data['Test_coeff_p']
 
 
         if args.test_pointset == 'CC_sparse_grid':
             w_test_weights  = test_data['w_test_weights'][0]
-            print(w_test_weights)
-        m_test       = test_data['m_test'][0,0]
-        K = y_in_test_data.shape[1]
+            #print(w_test_weights)
+        m_test         = test_data['m_test'][0,0]
+        Test_coeff_u   = Test_coeff_u.T
+        y_in_test_data = y_in_test_data.T
         print('===================================================================')
         print('TEST DATA FOUND number of testing points available',len(Test_coeff_u))
         print('===================================================================')
+        
 
 
 
@@ -506,6 +290,7 @@ if __name__ == '__main__':
     # DEFAULT SETTINGS
     #==============================================================================
     DNN_run_data = {}
+    DNN_run_data['fenics_params']                  = fenics_params
     DNN_run_data['init_rate']                      = 1e-3
     DNN_run_data['decay_steps']                    = 1e3
     DNN_run_data['initializer']                    = initializer
@@ -513,6 +298,9 @@ if __name__ == '__main__':
     DNN_run_data['lrn_rate_schedule']              = lrn_rate_schedule
     DNN_run_data['error_tol']                      = error_tol 
     DNN_run_data['nb_epochs']                      = nb_epochs
+    DNN_run_data['FUNCTION']                       = args.whichfun
+    DNN_run_data['PROBLEM']                        = args.problem 
+
 
     print('=================================================================================')
     print('Running problem (key_DNN): ' + str(key_DNN))
@@ -581,17 +369,36 @@ if __name__ == '__main__':
     DNN_run_data['np_seed']                        = np_seed
     DNN_run_data['tf_seed']                        = tf_seed
     DNN_run_data['tf_version']                     = tf.__version__
-    DNN_run_data['run_data_filename']              = DNN_results_filename                
+    DNN_run_data['result_folder']                  = DNN_results_filename
+    DNN_run_data['DNN_model_final_savedir']        = DNN_model_final_savedir
+    DNN_run_data['run_data_filename']              = DNN_results_filename  
     DNN_run_data['key_DNN']                        = key_DNN
     DNN_run_data['input_dim']                      = d
-    DNN_run_data['sigma']                          = sigma
+    
+
+    DNN_run_data['x_train_data']                   = y_in_train_data
+    DNN_run_data['y_train_data']                   = Train_coeff_u
+    DNN_run_data['x_test_data']                    = y_in_test_data
+    DNN_run_data['y_test_data']                    = Test_coeff_u
+    DNN_run_data['w_quadrature_weights_test']      = w_test_weights
+    DNN_run_data['test_pointset']                  = args.test_pointset
     DNN_run_data['update_ratio']                   = 0.0625
     DNN_run_data['patience']                       = 1e10
-    DNN_run_data['output_dim']                     = K
+    DNN_run_data['quiet']                          = 0
+    DNN_run_data['patience']                       = 1e10
+
+
+    DNN_run_data['output_dim']                     = output_dim_u 
+    DNN_run_data['sigma']                          = sigma
+    DNN_run_data['DNN_show_epoch']                 = args.DNN_show_epoch
+    
+
+   
     DNN_run_data['precision']                      = args.DNN_precision
     DNN_run_data['intermediate_testing']           = 1
     DNN_run_data['intermediate_testing_interval']  = 1000
     DNN_run_data['DNN_loss_function']              = args.DNN_loss_function
+   
 
     print('mesh                 : ' + str(nk))
     print('Finite element degree: ' + str(deg))
@@ -603,20 +410,6 @@ if __name__ == '__main__':
     #==============================================================================
     # DNN SETTING 
     #==============================================================================
-    # Extract the coefficients of all the functions and output dimensions
-    if args.problem =="poisson":
-        u_train_data       =  extract_specific_function(Train_coeff_u,0).T
-        output_dim_u         = u_train_data.shape[1]
-        
-    elif args.problem =="NSB":    
-        u_train_data       =  extract_specific_function(Train_coeff_u,0).T
-        p_train_data       =  extract_specific_function(Train_coeff_p,0).T
-
-        output_dim_u         = u_train_data.shape[1]
-        output_dim_p         = p_train_data.shape[1]
-        print('*****************************************************************')
-        print(output_dim_u)
-        print(output_dim_p)
     
 
     if args.Use_batching==0:
@@ -625,169 +418,55 @@ if __name__ == '__main__':
     else:
         BATCH_SIZE   = int(m/5)
         print("BATCH=",BATCH_SIZE)
+
     BATCH_SIZE   = int(m/5)
     nb_train_pts = m
     nb_test_pts  = m_test
     x_train_data =  y_in_train_data.T
     x_test_data  =  y_in_test_data.T
 
+    DNN_run_data['batch_size']                     = BATCH_SIZE
+    DNN_u = tf.keras.Sequential()
+    DNN_u.add(tf.keras.Input(shape=(DNN_run_data['input_dim'])))
+
+    for layer in range(nb_layers+1):
+        DNN_u.add(tf.keras.layers.Dense(DNN_run_data['nb_nodes_per_layer'], activation=DNN_run_data['activation'],
+            kernel_initializer=weight_bias_initializer,
+            bias_initializer=weight_bias_initializer
+        ))
+
+    DNN_u.add(tf.keras.layers.Dense(DNN_run_data['output_dim'],
+        kernel_initializer=weight_bias_initializer,
+        bias_initializer=weight_bias_initializer
+    ))
+
+    print(DNN_u)
+
+    model_num_trainable_variables = np.sum([np.prod(v.get_shape().as_list()) for v in DNN_u.trainable_variables])
+    print('This model has {} trainable variables'.format(model_num_trainable_variables))
+    DNN_run_data['tf_trainable_vars'] = model_num_trainable_variables
+    loss = tf.keras.losses.MeanSquaredError()
+    opt = tf.keras.optimizers.Adam(
+                    learning_rate=decay_schedule,
+                    beta_1=0.9, beta_2=0.999, epsilon=1e-07, #amsgrad=False,
+                    name='Adam'
+                )
+    DNN_u.compile(loss=loss, optimizer=opt, metrics=['accuracy'])
+    print('Using data x_train_data (point samples) size ' + str(x_train_data.shape))
+    if args.whichfun =='_u_':
+        print('Using data train_data (FE coefficients) size ' + str(u_train_data.shape))
+    elif args.whichfun =='_p_':
+        print('Using data train_data (FE coefficients) size ' + str(u_train_data.shape))
 
 
-    #==============================================================================
-    # # Functional API
-    #==============================================================================
-    if args.problem =="poisson":
-        inputs_u,first_output_layer_u = DNN_architecture_layers(d,nb_layers,nb_nodes_per_layer,activation,weight_bias_initializer,output_dim_u)
-        DNN_u = tf.keras.Model(inputs=inputs_u, outputs=[first_output_layer_u])
-        #DNN_u.summary()
-        #------------------------------------------------------------------------------# 
-        # Define tf.functions 
-        #------------------------------------------------------------------------------#
-        @tf.function
-        def get_u(y):
-            y = tf.convert_to_tensor(y)    
-            uy = DNN_u(y)[0]
-            return uy # Cofficients 
-
-        @tf.function
-        def get_mse_u(y,u_true):
-            # minimize solution u on Omega x[0,T]
-            mse_1 = tf.reduce_mean((get_u(y)- u_true)**2 )
-
-            return mse_1 
-        OPT_u = tf.keras.optimizers.Adam(
-                        learning_rate=decay_schedule,
-                        beta_1=0.9, beta_2=0.999, epsilon=1e-07, #amsgrad=False,
-                        name='Adam')
-
-        @tf.function
-        def GD_u(y,u_true):
-            with tf.GradientTape() as g:
-                g.watch(DNN_u.variables)
-                mse = get_mse_u(y,u_true)
-            G = g.gradient(mse,DNN_u.variables)
-            OPT_u.apply_gradients(zip(G,DNN_u.variables)) 
+    prediction_history = EarlyStoppingPredictHistory(DNN_run_data)
+    DNN_u.summary()
+    DNN_u.fit(x_train_data, Train_coeff_u, epochs=args.DNN_epochs, batch_size=BATCH_SIZE, verbose=0, shuffle=True, callbacks=[prediction_history])
 
 
-        # Data inside the domain
-        # Auxiliary variables
-        y_test          = tf.cast(np.asarray(x_test_data), tf.float32)
-        _allcoeff_to_u  = tf.cast(np.asarray(Test_coeff_u), tf.float32)
-     
-        L4u_err_append  = np.array([])
-
-
-        # Start the threads
-        
-        if args.whichfun =='_u_':
-            function_DNN_u(DNN_u,nb_epochs,BATCH_SIZE,m,x_train_data,u_train_data,y_test,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights,d,error_tol,DNN_model_final_savedir)
-        else:
-            print('**********************************************************')
-            print(' Error the function does not correspond to the requirements     ')
-            print('**********************************************************')
-            
-
-
-
- 
-        print('**********************************************')
-        print('************** THE END ***********************')
-        print('**********************************************') 
-
-    elif args.problem =="NSB": 
-        inputs_u,first_output_layer_u = DNN_architecture_layers(d,nb_layers,nb_nodes_per_layer,activation,weight_bias_initializer,output_dim_u)
-        inputs_p,first_output_layer_p = DNN_architecture_layers(d,nb_layers,nb_nodes_per_layer,activation,weight_bias_initializer,output_dim_p)
-        DNN_u = tf.keras.Model(inputs=inputs_u, outputs=[first_output_layer_u])
-        DNN_p = tf.keras.Model(inputs=inputs_p, outputs=[first_output_layer_p])
-        #DNN_u.summary()
-        #DNN_p.summary()
-        #------------------------------------------------------------------------------# 
-        # Define tf.functions 
-        #------------------------------------------------------------------------------#
-        @tf.function
-        def get_u(y):
-            y = tf.convert_to_tensor(y)    
-            uy = DNN_u(y)[0]
-            return uy # Cofficients
-        @tf.function
-        def get_p(y):
-            y = tf.convert_to_tensor(y)    
-            py = DNN_p(y)[0]
-            return py # Cofficients  
-
-        @tf.function
-        def get_mse_u(y,u_true):
-            # minimize solution u on Omega x[0,T]
-            mse_1 = tf.reduce_mean((get_u(y)- u_true)**2 )
-            return mse_1 
-        @tf.function
-        def get_mse_p(y,p_true):
-            # minimize solution u on Omega x[0,T]
-            mse_1 = tf.reduce_mean((get_p(y)- p_true)**2 )
-            return mse_1 
-
-        OPT_u = tf.keras.optimizers.Adam(
-                        learning_rate=decay_schedule,
-                        beta_1=0.9, beta_2=0.999, epsilon=1e-07, #amsgrad=False,
-                        name='Adam')
-        OPT_p = tf.keras.optimizers.Adam(
-                        learning_rate=decay_schedule,
-                        beta_1=0.9, beta_2=0.999, epsilon=1e-07, #amsgrad=False,
-                        name='Adam')
-        @tf.function
-        def GD_u(y,u_true):
-            with tf.GradientTape() as g:
-                g.watch(DNN_u.variables)
-                mse = get_mse_u(y,u_true)
-            G = g.gradient(mse,DNN_u.variables)
-            OPT_u.apply_gradients(zip(G,DNN_u.variables)) 
-        @tf.function
-        def GD_p(y,p_true):
-            with tf.GradientTape() as g:
-                g.watch(DNN_p.variables)
-                mse = get_mse_p(y,p_true)
-            G = g.gradient(mse,DNN_p.variables)
-            OPT_p.apply_gradients(zip(G,DNN_p.variables)) 
-
-        # Data inside the domain
-        # Auxiliary variables
-        y_test          = tf.cast(np.asarray(x_test_data), tf.float32)
-        _allcoeff_to_u  = tf.cast(np.asarray(Test_coeff_u), tf.float32)
-        
-        _allcoeff_to_p    = tf.cast(np.asarray(Test_coeff_p), tf.float32)
-        L2p_err_append    = np.array([])
-        
-        L4u_err_append  = np.array([])
-
-
-        
- 
-        
-        if args.whichfun =='_u_':
-            # Start the threads
-            function_DNN_u(DNN_u,nb_epochs,BATCH_SIZE,m,x_train_data,u_train_data,y_test,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights,d,error_tol,DNN_model_final_savedir)
-        elif args.whichfun =='_p_':
-            function_DNN_p(DNN_p,nb_epochs,BATCH_SIZE,m,x_train_data,p_train_data,y_test,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h,d,error_tol,DNN_model_final_savedir)
-        elif args.whichfun =='_u_p_':
-            function_DNN_u(DNN_u,nb_epochs,BATCH_SIZE,m,x_train_data,u_train_data,y_test,m_test,_allcoeff_to_u,soltrue,solDNN,w_test_weights,d,error_tol,DNN_model_final_savedir)
-            function_DNN_p(DNN_p,nb_epochs,BATCH_SIZE,m,x_train_data,p_train_data,y_test,m_test,_allcoeff_to_p,w_test_weights,PDNN_h,PSOL_h,d,error_tol,DNN_model_final_savedir)
-        else:
-            print('**********************************************************')
-            print(' Error the function does not correspond to the requirements     ')
-            print('**********************************************************')
- 
-
-
-
- 
-        print('**********************************************')
-        print('************** THE END ***********************')
-        print('**********************************************')
-
-
-
-
-
+    print('**********************************************')
+    print('************** THE END ***********************')
+    print('**********************************************')
 
 
 

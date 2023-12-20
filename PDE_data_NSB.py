@@ -90,8 +90,6 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     #================================================================
     # Boundary condition
     #================================================================ 
-    coeff_each_m_u =[]
-    coeff_each_m_p =[]
     # *********** Trial and test functions ********** #
 
     Trial = TrialFunction(Hh)
@@ -149,10 +147,8 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     sigmah = as_tensor((sigh1,sigh2))
     gammah = as_tensor(((0,gamh_),(-gamh_,0)))
     ph = project(-1/ndim*tr(sigmah + outer(uh,uh)),Ph) 
-    coef_one_trial = uh.vector().get_local()
-    coeff_each_m_u.append(coef_one_trial)
-    coef_one_trial = ph.vector().get_local()
-    coeff_each_m_p.append(coef_one_trial)
+    u_coefs = np.array(uh.vector().get_local())
+    p_coefs = np.array(ph.vector().get_local())
     
     if train:
         if i<0:
@@ -179,7 +175,7 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     
 
 
-    return coeff_each_m_u,coeff_each_m_p, norm_L4, norm_L2
+    return u_coefs,p_coefs, norm_L4, norm_L2
 
 
 

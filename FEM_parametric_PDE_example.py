@@ -229,24 +229,24 @@ if __name__ == '__main__':
     print('Using uniform random training points with m =', m)
     K = nvec
     print('Generating the training data')
-    
+    coeff_each_m = []
     # Generate the training data
     for i in range(m):
-      coeff_each_m = []
+      
       t_start = time.time()
 
       # get the training data inputs 
       z = y_in_train[:,i]
       if args.problem =="poisson":
-        coeff_each_m, norm_u_1, norm_u_2 = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
-        Train_coeff_u.append(coeff_each_m)
+        u_coefs, norm_u_1, norm_u_2 = gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,args.train)
+        Train_coeff_u.append(u_coefs)
         
 
 
       elif args.problem =="NSB":
-        coeff_each_m_u,coeff_each_m_p, norm_u_1, norm_u_2 = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
-        Train_coeff_u.append(coeff_each_m_u)
-        Train_coeff_p.append(coeff_each_m_p)
+        u_coefs,p_coefs, norm_u_1, norm_u_2 = gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,args.train)
+        Train_coeff_u.append(u_coefs)
+        Train_coeff_p.append(p_coefs)
 
 
     
@@ -318,6 +318,8 @@ if __name__ == '__main__':
       print('====================================================================')
       print('i = ', i, 'L2u=  %2.4g ' % norm_u_1,'y_test= ', z)
       print('====================================================================')
+
+    Test_coeff_u = np.transpose(np.array(Test_coeff_u))  
     test_data ={}
     test_data['m_test']         = m_test
     sio.savemat(test_results_filename, test_data)
@@ -329,8 +331,9 @@ if __name__ == '__main__':
     run_data['y_in_test_data'] = y_in_test
     run_data['mesh_op']        = nk
     run_data['FE_degree']      = deg
-    run_data['Test_coeff_u'] = Test_coeff_u
+    run_data['Test_coeff_u']   = Test_coeff_u
     if args.problem =="NSB":
+      Test_coeff_p = np.transpose(np.array(Test_coeff_p))  
       run_data['Test_coeff_p'] = Test_coeff_p
     run_data['_L2unorm_test']       = _L2unorm_test
     run_data['_H2snorm_test']       = _H2snorm_test

@@ -15,22 +15,6 @@ FEniCS tutorial demo program: Poisson equation with Dirichlet conditions.
 """
 def str2exp(s):
     return sf.sympy2exp(sf.str2sympy(s))
-def coeff_extr(j,Hh,Usol):
-    #This exctracts the coefficient of the different spaces
-    # j is the index of the space:
-    # j=0 the vector space for uh
-    # j=1 the space for  component of sigma
-    # For this to work the nature of the space has to be the same
-    W  = Function(Hh)
-    #Getting the exact DOF location
-    DoF_map   = Hh.sub(j).dofmap()
-    DoF_index = DoF_map.dofs()
-    AUX1 = W.vector().get_local()    # empty DoF vector 
-    AUX2 = Usol.vector().get_local() # All DoF
-    AUX1[DoF_index] = AUX2[DoF_index]                # corresponding assignation
-    W.vector().set_local(AUX1)       # corresponding assignation to empy vector
-    coeff_vector = np.array(W.vector().get_local()) 
-    return coeff_vector
 
 class MyExpression(UserExpression):
   def eval(self, value, x):
@@ -53,7 +37,6 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     #================================================================
     # Boundary condition
     #================================================================ 
-    coeff_each_m =[]
     u_D      = MyExpression()
     u_str    = '10.0'       
     u_ex     = Expression(str2exp(u_str), degree=1, domain=mesh)  
@@ -90,8 +73,9 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     Tang = derivative(FF, Usol, Utrial)
     solve(FF == 0, Usol, J=Tang)
     uh,Rsigh = Usol.split()
+    u_coefs = np.array(uh.vector().get_local())
     if train:
-        if i<1:
+        if i<0:
             plot(uh)
             filename = 'poisson_nonlinear_u'+str(i)+'.png'
             plt.savefig ( filename )
@@ -103,16 +87,7 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
             folder1 = str('/home/sebanthalas/Documents/NE_NOV23/uh_REA.pvd')
             vtkfile = File(folder1)
             vtkfile << uh
-        # Change the following to W_trainsol.num_sub_spaces() if there 
-        # are more spaces to approximate. If only u, leave as 1.
-        num_subspaces = W_trainsol.num_sub_spaces() # change to -> W_trainsol.num_sub_spaces() when searching other 
-        
-        for j in range(num_subspaces):
-            coef_one_trial = coeff_extr(j,Hh,Usol)
-            coeff_each_m.append(coef_one_trial)
-    else:
-        coeff_each_m = Usol.vector().get_local()
-        
+    
 
     
     norm_L2      = sqrt(assemble((uh)**2*dx)) 
@@ -121,4 +96,4 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     
 
 
-    return coeff_each_m, norm_L2, norm_Hdiv
+    return u_coefs, norm_L2, norm_Hdiv
