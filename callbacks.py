@@ -37,6 +37,7 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
         # variable holding percentage of testing points with error above 10^{-k} for various thresholds k
         self.percs = []
         self.num_perc = np.array([])
+        self.Tosave_data={} #TO save the final data without the training and testing points (too expensive to save  run_data)
 
         # keep track of the minimum loss (corresponding to the last save)
         self.last_output_loss = 10
@@ -118,11 +119,11 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
 
                     L2_err = L2_err + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                     L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
-                U_dnn = u_sol-uh
-                plot(U_dnn)
-                filename = 'results/_'+str(epoch)+'_DNNu.png'
-                plt.savefig ( filename )
-                plt.close()   
+                #U_dnn = u_sol-uh
+                #plot(U_dnn)
+                #filename = 'results/_'+str(epoch)+'_DNNu.png'
+                #plt.savefig ( filename )
+                #plt.close()   
 
                 L2_err = np.sqrt(np.abs(L2_err*2**(-1.0*self.run_data['input_dim'])))
                 L2_norm = np.sqrt(np.abs(L2_norm*2**(-1.0*self.run_data['input_dim'])))
@@ -199,11 +200,11 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 L2_err = L2_err + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                 L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
 
-            U_dnn = u_sol-uh
-            plot(U_dnn)
-            filename = 'results/_'+str(epoch)+'_DNNu.png'
-            plt.savefig ( filename )
-            plt.close()    
+            #U_dnn = u_sol-uh
+            #plot(U_dnn)
+            #filename = 'results/_'+str(epoch)+'_DNNu.png'
+            #plt.savefig ( filename )
+            #plt.close()    
             L2_err = np.sqrt(np.abs(L2_err*2**(-1.0*self.run_data['input_dim'])))
             L2_norm = np.sqrt(np.abs(L2_norm*2**(-1.0*self.run_data['input_dim'])))
             L2_err =L2_err/L2_norm
@@ -213,16 +214,19 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
             self.time_intervals.append(time.time() - self.run_data['start_time'])
             test_time = time.time() - test_start_time
 
-            self.run_data['lrn_rates_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = self.lrn_rates
-            self.run_data['run_time_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = time.time() - self.run_data['start_time']
-            self.run_data['L2_err_af_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']       = self.L2_test_errs
             
-            self.run_data['iterations_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = epoch
-            self.run_data['loss_per_iteration_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+''] = self.losses
-            self.run_data['time_intervals_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']     = self.time_intervals
+            self.Tosave_data['lrn_rates_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = self.lrn_rates
+            self.Tosave_data['run_time_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = time.time() - self.run_data['start_time']
+            self.Tosave_data['L2_err_af_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = self.L2_test_errs
+            #self.run_data['H1_test_errs']       = self.H1_test_errs
+            self.Tosave_data['iterations_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = epoch
+            self.Tosave_data['loss_per_iteration_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+''] = self.losses
+            self.Tosave_data['time_intervals_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']     = self.time_intervals
+
+            
 
             # save the resulting mat file with scipy.io
-            sio.savemat(self.run_data['run_data_filename'], self.run_data)
+            sio.savemat(self.run_data['run_data_filename'], self.Tosave_data)
 
             # if we've converged to the error tolerance in the loss, or run
             # into the maximum number of epochs, stop training and save
@@ -248,19 +252,19 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
 
                 self.model.save(self.run_data['DNN_model_final_savedir'])
 
-                self.run_data['run_time'] = time.time() - self.run_data['start_time']
-                self.run_data['percentiles_at_save'] = self.percs
-                self.run_data['percentiles_save_iters'] = self.num_perc
-                self.run_data['y_DNN_pred'] = y_DNN_pred
-                self.run_data['iterations'] = self.steps
-                self.run_data['loss_per_iteration'] = self.losses
-                self.run_data['lrn_rates'] = self.lrn_rates
-                self.run_data['stopped_epoch'] = self.stopped_epoch
-                self.run_data['best_loss'] = self.best_loss
-                self.run_data['best_loss_epoch'] = self.best_loss_epoch
+                self.Tosave_data['run_time'] = time.time() - self.run_data['start_time']
+                self.Tosave_data['percentiles_at_save'] = self.percs
+                self.Tosave_data['percentiles_save_iters'] = self.num_perc
+                self.Tosave_data['y_DNN_pred'] = y_DNN_pred
+                self.Tosave_data['iterations'] = self.steps
+                self.Tosave_data['loss_per_iteration'] = self.losses
+                self.Tosave_data['lrn_rates'] = self.lrn_rates
+                self.Tosave_data['stopped_epoch'] = self.stopped_epoch
+                self.Tosave_data['best_loss'] = self.best_loss
+                self.Tosave_data['best_loss_epoch'] = self.best_loss_epoch
 
                 # save the resulting mat file with scipy.io
-                sio.savemat(self.run_data['run_data_filename'], self.run_data)
+                sio.savemat(self.run_data['run_data_filename'], self.Tosave_data)
 
                 self.model.stop_training = True
 

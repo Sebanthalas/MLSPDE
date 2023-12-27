@@ -1,20 +1,16 @@
+import sys
 from dolfin import *
 from fenics import *
 import numpy as np
 from scipy import sparse
 import sympy2fenics as sf
 import matplotlib.pyplot as plt
+import logging
 
-"""
-FEniCS tutorial demo program: Poisson equation with Dirichlet conditions.
-# -a(x,y) nalba u (x,y) = f ; u = g on gamma
-# Formulation: Mixed formulation  u in L^2 sigma in H(div)
-# Boundary conditions:  Natural    = True
-#                       Essential  = False
-# - tensor products
-"""
+
 def str2exp(s):
     return sf.sympy2exp(sf.str2sympy(s))
+
 
 class MyExpression(UserExpression):
   def eval(self, value, x):
@@ -25,7 +21,7 @@ class MyExpression(UserExpression):
     elif x[0] > 1- DOLFIN_EPS:
       value[0] = 1.0*x[1]*(1.-x[1])
     elif x[0] < -0.0+ DOLFIN_EPS:
-      value[0] = 0.0 #-1.0*x[1]*(1.-x[1]) # 1.0*x[1]*(0.4-x[1])*(x[1]<0.4)+1.0*(x[1]-1.0)*(0.6-x[1])*(x[1]>0.6)
+      value[0] = 0.0 
     elif ( (x[0] > 0.0625 - DOLFIN_EPS) and (x[0] < 0.1875 +DOLFIN_EPS) and (x[1] > 0.4375 - DOLFIN_EPS) and (x[1] < 0.5625 + DOLFIN_EPS) ):
       value[0] = -0.0   
     else:
@@ -51,7 +47,6 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     # Define the right hand side and diffusion coefficient
     if example == 'other':
         pi     = str(3.14159265359)
-        amean  = str(2)
         string = '1.9 + '
         for j in range(d):
             term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
@@ -61,35 +56,21 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     f       = Constant(0.0)
     u, Rsig = split(Usol)
     v, Rtau = TestFunctions(Hh)
+    logging.warning('Watch out!')
 
     # Weak formulation  
     BigA  = a*dot(Rsig,Rtau)*dx
     BigB1 = u*div(Rtau)*dx
     BigB2 = v*div(Rsig)*dx
     F = -f*v*dx
+    
     G = (Rtau[0]*nn[0]+Rtau[1]*nn[1])*u_ex*u_D[0]*ds
-    #Stiffness matrix
     FF = BigA + BigB1 + BigB2  - F - G 
     Tang = derivative(FF, Usol, Utrial)
     solve(FF == 0, Usol, J=Tang)
     uh,Rsigh = Usol.split()
     u_coefs = np.array(uh.vector().get_local())
-    if train:
-        if i<0:
-            plot(uh)
-            filename = 'poisson_nonlinear_u'+str(i)+'.png'
-            plt.savefig ( filename )
-            plt.close()
-            plot(Rsigh)
-            filename = 'poisson_nonlinear_sigma'+str(i)+'.png'
-            plt.savefig ( filename )
-            plt.close()
-            folder1 = str('/home/sebanthalas/Documents/NE_NOV23/uh_REA.pvd')
-            vtkfile = File(folder1)
-            vtkfile << uh
-    
 
-    
     norm_L2      = sqrt(assemble((uh)**2*dx)) 
     norm_Hdiv    = sqrt(assemble((Rsigh)**2*dx)  +  sqrt(assemble((div(Rsigh) )**2*dx) )  )
 

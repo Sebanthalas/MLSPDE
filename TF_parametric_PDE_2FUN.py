@@ -7,6 +7,7 @@
 #                       Essential  = False
 # - tensor products
 # ==============================================================
+import sys
 import scipy.io as sio
 import tensorflow as tf
 from tensorflow import keras
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     parser.add_argument("--mesh_num", default = 2, type = int, help = "Defines the refiniment of the mesh, 1,2,3,4 (default mesh number 2)")
     parser.add_argument("--FE_degree", default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
     parser.add_argument("--example", default = 'other', type = str, help = "Example function to use in the PDE (default other)")
-    parser.add_argument("--quiet", default = 1, type = int, help = "Switch for verbose output (default 1)")
+    parser.add_argument("--quiet", default = 0, type = int, help = "Switch for verbose output (default 1)")
     parser.add_argument("--trial_num", default = 0, type = int, help = "Number for the trial to run (default 0)")
     parser.add_argument("--make_plots", default = 0, type = int, help = "Switch for generating plots (default 0)")
     parser.add_argument("--error_tol", default = "1e-4", type = str, help = "Stopping tolerance for the solvers (default 1e-4)")
@@ -138,8 +139,6 @@ if __name__ == '__main__':
     #================================================================
     fenics_params['mesh']      = mesh
     fenics_params['V']         = Hh
-    #if args.whichfun =='_p_' and args.problem =="NSB":
-    #    fenics_params['V']         = Ph
     fenics_params['example']   = args.example
     fenics_params['input_dim'] = d
 
@@ -161,17 +160,15 @@ if __name__ == '__main__':
     blocktype          = args.DNN_blocktype #'default'
     sigma              = 0.1 
     error_tol          = args.DNN_error_tol 
-    quiet              = 0
+    quiet              = 1
     nb_epochs          = args.DNN_epochs 
     nb_trials          = args.DNN_total_trials
     best_loss          = 10
-    #Id = Constant(((1.,0.),(0.,1.)))
-    #pi = 3.14159265359
     m_test = args.nb_test_points
 
     # Look for a different number of m_test (possibly from using Tasmanian)
     if args.test_pointset == 'CC_sparse_grid':
-        test_results_filename = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/'+str(d)+'d_'+str(args.SG_level)+'_SG_test_data.mat'
+        test_results_filename = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/'+str(d)+'d_'+str(args.SG_level)+'_SG_test_data.mat'
         getting_m_test    = sio.loadmat(test_results_filename)
         sorted(getting_m_test.keys())
         m_test = getting_m_test['m_test'][0,0]
@@ -186,9 +183,9 @@ if __name__ == '__main__':
     key_DNN = 'FUN'+str(args.whichfun)+'/'+str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer +'_d_'+str(d)+ '_optimizer_' \
               + args.DNN_loss_function + '_loss_' + args.DNN_activation  + '_' + str(args.DNN_nb_layers) + 'x' \
               + str(nb_nodes_per_layer) + '_' + args.DNN_blocktype
-    scratchdir_train    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
-    scratchdir_tests    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/' + key_test
-    scratchdir_resul    = '/home/sebanthalas/Documents/NE_NOV23/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example +'/' + str(trial) + '/' + key_DNN
+    scratchdir_train    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
+    scratchdir_tests    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/' + key_test
+    scratchdir_resul    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example +'/' + str(trial) + '/' + key_DNN
     result_folder       = scratchdir_resul
 
     if not os.path.exists(result_folder):
@@ -200,7 +197,7 @@ if __name__ == '__main__':
         print('===================================================================')
     
     #m_test_check = 9
-    run_data_filename       = scratchdir_train + '/trial_' + str(trial) + '_run_data.mat'
+    run_data_filename       = scratchdir_train + '/trial_' + str(trial) + '/_run_data.mat'
     test_data_filename      = scratchdir_tests + '/test_data' + str(m_test).zfill(8) + '_' + args.test_pointset + '_pts_test_data.mat'
     DNN_results_filename    = result_folder  + '/data_m_'+str(m).zfill(6)+'_deg_'+str(deg)+'_mesh_'+str(nk)+'_af_'+activation+''+str(nb_layers)+'x'+str(nb_nodes_per_layer)+'_final.mat'
     DNN_model_final_savedir = result_folder + '/DNN_finalModel_trial_' 
@@ -212,6 +209,7 @@ if __name__ == '__main__':
         y_in_train_data  =  train_data['y_in_train_data']
         Train_coeff_u    =  train_data['Train_coeff_u']
         Train_coeff_u    =  Train_coeff_u[range(m),:]
+        y_in_train_data  =  y_in_train_data.T[range(m),:]
         print('===================================================================')
         print('TRAIN DATA FOUND number of training points available',len(Train_coeff_u))
         print('===================================================================')
@@ -384,7 +382,7 @@ if __name__ == '__main__':
     DNN_run_data['test_pointset']                  = args.test_pointset
     DNN_run_data['update_ratio']                   = 0.0625
     DNN_run_data['patience']                       = 1e10
-    DNN_run_data['quiet']                          = 0
+    DNN_run_data['quiet']                          = 1
     DNN_run_data['patience']                       = 1e10
 
 
@@ -422,7 +420,7 @@ if __name__ == '__main__':
     BATCH_SIZE   = int(m/5)
     nb_train_pts = m
     nb_test_pts  = m_test
-    x_train_data =  y_in_train_data.T
+    x_train_data =  y_in_train_data
     x_test_data  =  y_in_test_data.T
 
     DNN_run_data['batch_size']                     = BATCH_SIZE
