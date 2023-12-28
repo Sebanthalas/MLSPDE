@@ -22,7 +22,8 @@ TASMANIAN                    7.3
 Examples:
 Poisson
 --------------------------------------------------
-![poisson_nonlinear_u0](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/16d76d0e-e032-4868-888c-043992782e3c)
+![ezgif com-animated-gif-maker](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/248738b8-638d-4380-918e-9ce015b668c5)
+
 
 NSB
 -----------------------------------------------------
