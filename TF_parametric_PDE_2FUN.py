@@ -16,7 +16,7 @@ from fenics import *
 import numpy as np
 import hdf5storage
 import time
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from numpy import linalg as la
 import time, os, argparse, io, shutil, sys, math, socket
 from dolfin import *
@@ -25,6 +25,7 @@ import random
 import argparse
 import threading
 import time
+import os
 from callbacks import EarlyStoppingPredictHistory
 # ==============================================================
 # CODE APPROXIMATING THE SOLUTION OF A PDE
@@ -167,8 +168,10 @@ if __name__ == '__main__':
     m_test = args.nb_test_points
 
     # Look for a different number of m_test (possibly from using Tasmanian)
+    current_directory   = os.getcwd()
+
     if args.test_pointset == 'CC_sparse_grid':
-        test_results_filename = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/'+str(d)+'d_'+str(args.SG_level)+'_SG_test_data.mat'
+        test_results_filename = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/testing_data_{args.example}/{d}d_{args.SG_level}_SG_test_data.mat"
         getting_m_test    = sio.loadmat(test_results_filename)
         sorted(getting_m_test.keys())
         m_test = getting_m_test['m_test'][0,0]
@@ -183,9 +186,9 @@ if __name__ == '__main__':
     key_DNN = 'FUN'+str(args.whichfun)+'/'+str(m).zfill(6) + '_pnts_%2.2e' % (float(args.DNN_error_tol)) + '_tol_' + args.DNN_optimizer +'_d_'+str(d)+ '_optimizer_' \
               + args.DNN_loss_function + '_loss_' + args.DNN_activation  + '_' + str(args.DNN_nb_layers) + 'x' \
               + str(nb_nodes_per_layer) + '_' + args.DNN_blocktype
-    scratchdir_train    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
-    scratchdir_tests    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/' + key_test
-    scratchdir_resul    = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example +'/' + str(trial) + '/' + key_DNN
+    scratchdir_train    = current_directory + '/results/scratch/SCS_FEM_'+args.problem+'/training_data_' + args.example + '/' + key
+    scratchdir_tests    = current_directory + '/results/scratch/SCS_FEM_'+args.problem+'/testing_data_'+ args.example + '/' + key_test
+    scratchdir_resul    = current_directory + '/results/scratch/SCS_FEM_'+args.problem+'/' + unique_run_ID + '_' + args.example +'/' + str(trial) + '/' + key_DNN
     result_folder       = scratchdir_resul
 
     if not os.path.exists(result_folder):

@@ -133,13 +133,13 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 #self.H1_test_errs.append(H1_err)
                 self.time_intervals.append(time.time() - self.run_data['start_time'])
                 test_time = time.time() - test_start_time
-                if not self.run_data['quiet']:
-                    print('======================================================================================================================')
-                    print('Epochs: ' + str(epoch) + '- Loss = %8.4e,' % (logs["loss"]),
-                        'LR = %4.4e,' % (current_learning_rate), 'L2 err = %8.4e,' % (L2_err),
-                        #'H1 err = %8.4e,' % (H1_err), 
-                        'time to compute test error = %8.2f' % (test_time) )
-                    print('======================================================================================================================')
+                #if not self.run_data['quiet']:
+                print('======================================================================================================================')
+                print('Epochs: ' + str(epoch) + '- Loss = %8.4e,' % (logs["loss"]),
+                    'LR = %4.4e,' % (current_learning_rate), 'L2 err = %8.4e,' % (L2_err),
+                    #'H1 err = %8.4e,' % (H1_err), 
+                    'time to compute test error = %8.2f' % (test_time) )
+                print('======================================================================================================================')
                     
 
         else:
@@ -200,11 +200,11 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 L2_err = L2_err + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                 L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
 
-            #U_dnn = u_sol-uh
-            #plot(U_dnn)
-            #filename = 'results/_'+str(epoch)+'_DNNu.png'
-            #plt.savefig ( filename )
-            #plt.close()    
+            U_dnn = u_sol-uh
+            plot(U_dnn)
+            filename = 'results/_'+str(epoch)+'_DNNu.png'
+            plt.savefig ( filename )
+            plt.close()    
             L2_err = np.sqrt(np.abs(L2_err*2**(-1.0*self.run_data['input_dim'])))
             L2_norm = np.sqrt(np.abs(L2_norm*2**(-1.0*self.run_data['input_dim'])))
             L2_err =L2_err/L2_norm
@@ -232,13 +232,13 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
             # into the maximum number of epochs, stop training and save
             if (current_loss <= self.run_data['error_tol']) or (epoch == self.run_data['nb_epochs'] - 1) or self.model.stop_training:
                 # output the final checkpoint loss and statistics
-                if not self.run_data['quiet']:
-                    print('=============================================x=x=========================================================================')
-                    print('Epochs: ' + str(epoch) + '- Loss = %8.4e,' % (logs["loss"]),
-                        'LR = %4.4e,' % (current_learning_rate), 'L2 err = %8.4e,' % (L2_err),
-                        #'H1 err = %8.4e,' % (H1_err), 
-                        'time to compute test error = %8.2f' % (test_time) )
-                    print('=============================================x=x========================================================================')
+                #if not self.run_data['quiet']:
+                print('=============================================x=x=========================================================================')
+                print('Epochs: ' + str(epoch) + '- Loss = %8.4e,' % (logs["loss"]),
+                    'LR = %4.4e,' % (current_learning_rate), 'L2 err = %8.4e,' % (L2_err),
+                    #'H1 err = %8.4e,' % (H1_err), 
+                    'time to compute test error = %8.2f' % (test_time) )
+                print('=============================================x=x========================================================================')
 
                 print('Current loss at epoch %s:   %8.12e' % (str(epoch).zfill(8), current_loss))
                 print('Best loss at epoch    %s:   %8.12e' % (str(self.best_loss_epoch).zfill(8), self.best_loss))

@@ -85,11 +85,7 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
         
     # ********** Boundary conditions ******** #
 
-    zero = Constant((0.,0.))
-    #bcsig1 = DirichletBC(Hh.sub(4), zero, bdry, wall)
-    #bcsig2 = DirichletBC(Hh.sub(5), zero, bdry, wall)
-    #bcD = [bcsig1,bcsig2]
-
+    zero    = Constant((0.,0.))
     nitsche = Constant(1.e4)
         
     # *************** Variational forms ***************** #
