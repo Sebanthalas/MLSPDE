@@ -16,9 +16,9 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
 
     def __init__(self, run_data):
         super(EarlyStoppingPredictHistory, self).__init__()
-        self.run_data = run_data
+        self.run_data      = run_data
         self.fenics_params = self.run_data['fenics_params']
-        self.best_loss = 1e12
+        self.best_loss     = 1e12
         self.best_loss_epoch = -1
         # best_weights to store the weights at which the minimum loss occurs.
         self.best_weights = None
@@ -178,15 +178,15 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 solTRU.vector().set_local(self.run_data['y_test_data'][i,:])
                 if self.run_data['PROBLEM'] =="poisson":
 
-                    u_sol, _  = solTRU.split()
-                    uh   , _  = solDNN.split() 
+                    u_sol, _   = solTRU.split()
+                    uh   , _   = solDNN.split() 
                     norm_u     = sqrt(assemble((u_sol)**2*dx)) 
-                    error_L2  = sqrt(assemble((uh)**2*dx)) 
+                    error_L2   = sqrt(assemble((uh)**2*dx)) 
 
                 if self.run_data['FUNCTION'] =='_u_' and self.run_data['PROBLEM'] =="NSB":
                     
                     u_sol, _, _, _, _   = solTRU.split()
-                    uh   , _, _, _, _  = solDNN.split() 
+                    uh   , _, _, _, _   = solDNN.split() 
                     norm_u     = sqrt(sqrt(sqrt(assemble( ((u_sol)**2)**2*dx))))
                     error_L2  = sqrt(sqrt(assemble( ((uh)**2)**2*dx)))
                 if self.run_data['FUNCTION'] =='_p_' and self.run_data['PROBLEM'] =="NSB":
@@ -197,7 +197,7 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
 
                 
 
-                L2_err = L2_err + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
+                L2_err  = L2_err  + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                 L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
 
             U_dnn = u_sol-uh
@@ -215,13 +215,13 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
             test_time = time.time() - test_start_time
 
             
-            self.Tosave_data['lrn_rates_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = self.lrn_rates
-            self.Tosave_data['run_time_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = time.time() - self.run_data['start_time']
-            self.Tosave_data['L2_err_af_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = self.L2_test_errs
+            #self.Tosave_data['lrn_rates_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = self.lrn_rates
+            self.Tosave_data['run_time_' + self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_prob_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']          = time.time() - self.run_data['start_time']
+            self.Tosave_data['L2_err_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_prob_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = self.L2_test_errs
             #self.run_data['H1_test_errs']       = self.H1_test_errs
-            self.Tosave_data['iterations_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = epoch
+            #self.Tosave_data['iterations_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']         = epoch
             self.Tosave_data['loss_per_iteration_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+''] = self.losses
-            self.Tosave_data['time_intervals_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']     = self.time_intervals
+            #self.Tosave_data['time_intervals_'+ self.run_data['activation'] +'_Npl'+str(self.run_data['nb_layers'])+'x'+str(self.run_data['nb_nodes_per_layer'])+'_m_'+str(self.run_data['nb_train_points'])+'_trial_'+str(self.run_data['trial'])+'_dim_'+str(self.run_data['input_dim'])+'_problem_'+self.run_data['PROBLEM'] +''+self.run_data['FUNCTION']+'']     = self.time_intervals
 
             
 
@@ -232,7 +232,6 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
             # into the maximum number of epochs, stop training and save
             if (current_loss <= self.run_data['error_tol']) or (epoch == self.run_data['nb_epochs'] - 1) or self.model.stop_training:
                 # output the final checkpoint loss and statistics
-                #if not self.run_data['quiet']:
                 print('=============================================x=x=========================================================================')
                 print('Epochs: ' + str(epoch) + '- Loss = %8.4e,' % (logs["loss"]),
                     'LR = %4.4e,' % (current_learning_rate), 'L2 err = %8.4e,' % (L2_err),
@@ -269,9 +268,8 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 self.model.stop_training = True
 
         if (epoch % self.run_data['DNN_show_epoch'] == 0):
-            if not self.run_data['quiet']:
-                print('epoch: ' + str(epoch).zfill(8) + ', loss: %8.4e, lrn_rate: %4.4e, seconds: %8.2f ' \
-                    % (logs["loss"], current_learning_rate, time.time() - self.run_data['start_time']))
+            print('epoch: ' + str(epoch).zfill(8) + ', loss: %8.4e, lrn_rate: %4.4e, seconds: %8.2f ' \
+                % (logs["loss"], current_learning_rate, time.time() - self.run_data['start_time']))
 
 
     def on_train_end(self, logs=None):

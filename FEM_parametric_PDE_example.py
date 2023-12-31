@@ -46,17 +46,14 @@ if __name__ == '__main__':
   parser.add_argument("--input_dim",       default = 1,                type = int, help = "Dimension of the input (default 1)")
   parser.add_argument("--nb_train_points", default = 1,                type = int, help = "Number of points to use in training (default 1)")
   parser.add_argument("--train_pointset",  default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
-  parser.add_argument("--precision",       default = 'double',         type = str, help = "Switch for double vs. single precision")
+  #parser.add_argument("--precision",       default = 'double',         type = str, help = "Switch for double vs. single precision")
   parser.add_argument("--nb_test_points",  default = 1,                type = int, help = "Number of points to use in testing (default 1)")
   # PDE solver settings
   parser.add_argument("--problem",         default = 'poisson',        type = str, help = "Defines the PDE problem to solve")
-  parser.add_argument("--mesh_num",        default = 2,                type = int, help = "Defines the refiniment of the mesh, 1,2,3,4 (default mesh number 2)")
   parser.add_argument("--FE_degree",       default = 1,                type = int, help = "Defines FE polynomial degree (default mesh number 2)")
   parser.add_argument("--example",         default = 'other',          type = str, help = "Example function to use in the PDE (default other)")
-  parser.add_argument("--quiet",           default = 1,                type = int, help = "Switch for verbose output (default 1)")
   parser.add_argument("--trial_num",       default = 0,                type = int, help = "Number for the trial to run (default 0)")
-  parser.add_argument("--make_plots",      default = 0,                type = int, help = "Switch for generating plots (default 0)")
-  parser.add_argument("--error_tol",       default = "1e-4",           type = str, help = "Stopping tolerance for the solvers (default 1e-4)")
+  #parser.add_argument("--error_tol",       default = "1e-4",           type = str, help = "Stopping tolerance for the solvers (default 1e-4)")
   parser.add_argument("--SG_level",        default = 5,                type = int, help = "Maximum order p of the polynomial space")
   parser.add_argument("--fenics_log_level",default = 30,               type = int, help = "Log level for the FEniCS solver (default 30 = WARNING)")
   args = parser.parse_args()
@@ -77,12 +74,11 @@ if __name__ == '__main__':
 
   # Set the input dimension, mesh number, and example
   d       = args.input_dim
-  nk      = args.mesh_num
   example = args.example
 
   # Define mesh name based on the problem
   if args.problem == "poisson":
-      meshname = f"meshes/obsta{nk:03g}.xml"
+      meshname = f"meshes/obsta009.xml"
   elif args.problem == "NSB":
       meshname = "meshes/ComplexChannel.xml"
 
@@ -126,19 +122,7 @@ if __name__ == '__main__':
   m     = args.nb_train_points
 
   # set the maximum number of training points 
-  # set the precision variable to initialize weights and biases in either double or single precision
-  if args.precision == 'double':
-    print('===================================================================')
-    print('Using double precision') 
-    print('===================================================================')
-    precision = np.float64
-    error_tol = float(args.error_tol)
-  elif args.precision == 'single':
-    print('===================================================================')
-    print('Using single precision')
-    print('===================================================================')
-    precision = np.float32
-    error_tol = float(args.error_tol)
+
 
   #================================================================
   #  *********** create the sparse grid generator ************* #
@@ -176,8 +160,8 @@ if __name__ == '__main__':
   
 
   # Unique key for naming results
-  key = f"{str(m).zfill(6)}_pnts_{error_tol:.2e}_tol_{d}_d"
-  key_test = f"{str(m_test).zfill(6)}_pnts_{error_tol:.2e}_tol_{d}_d"
+  key = f"{str(m).zfill(6)}_pnts_{d}_d"
+  key_test = f"{str(m_test).zfill(6)}_pnts_{d}_d"
 
   # Save the training and test
   current_directory   = os.getcwd()
@@ -243,7 +227,6 @@ if __name__ == '__main__':
     'K': K,
     'm_train': m,
     'y_in_train_data': y_in_train,
-    'mesh_op': nk,
     'FE_degree': deg,
     'Train_coeff_u': Train_coeff_u,
     '_L2unorm_train': _L2unorm_train,
@@ -264,7 +247,7 @@ if __name__ == '__main__':
 
     sio.savemat(run_data_filename + '/_run_data.mat', run_data)
     print('Saved in:', run_data_filename)
-  else:
+  elif not args.train and not os.path.exists(test_data_filename + '_pts_test_data.mat'):
     if not os.path.exists(result_folder_test):
       try:
           os.makedirs(result_folder_test)    
@@ -318,7 +301,6 @@ if __name__ == '__main__':
         'K': K,
         'm_test': m_test,
         'y_in_test_data': y_in_test,
-        'mesh_op': nk,
         'FE_degree': deg,
         'Test_coeff_u': Test_coeff_u,
         'fenics_mesh_coords': np.array(mesh.coordinates()),
