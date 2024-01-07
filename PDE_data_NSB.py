@@ -31,16 +31,52 @@ def gen_dirichlet_data_NSB(z,mesh, Hh, example,i,d,train):
     Id = Identity(ndim)
 
     lam = Constant(0.1)
+    #===================================================================================================  
     # *********** Variable coefficients ********** #
 
 
-    if example == 'other':
+    if example =='logKL_expansion':
+        pi = 3.14159265359
+        pi_s = str(pi)
+        L_c = 1.0/8.0
+        L_p = np.max([1.0, 2.0*L_c])
+        L_c_s = str(L_c)
+        L_p_s = str(L_p)
+        L = L_c/L_p
+        L_s = str(L)
+
+        string = '1.0+sqrt(sqrt(' + pi_s + ')*' + L_s + '/2.0)*' + str(z[0])
+        for j in range(2, d):
+            term = str(z[j-1]) + '*sqrt(sqrt(' + pi_s + ')*' + L_s + ')*exp(-pow(floor(' 
+            term = term + str(j) + '/2.0)*' + pi_s + '*' + L_s + ',2.0)/8.0)'
+            if j % 2 == 0:
+                term = term + '*sin(floor(' + str(j) + '/2.0)*' + pi_s + '*x/' + L_p_s + ')'
+            else:
+                term = term + '*cos(floor(' + str(j) + '/2.0)*' + pi_s + '*x/' + L_p_s + ')'
+
+            string = string + '+' + term
+        string = 'exp(' + string + ')'
+
+    elif example == 'aff_coeff2':
         pi     = str(3.14159265359)
-        amean  = str(2)
+        string = '2.62 + '
+        for j in range(d):
+            term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,3/2))'
+            string =  string + '+' + term
+
+    elif example == 'aff_coeff1': 
+        pi     = str(3.14159265359)
         string = '1.89 + '
         for j in range(d):
             term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
             string =  string + '+' + term
+
+    else:
+      print('error')
+
+    #===================================================================================================  
+
+
     string   =  '('+string+')' 
     mu       = Expression(str2exp(string), degree=3, domain=mesh)
 

@@ -165,8 +165,8 @@ if __name__ == '__main__':
 
   # Save the training and test
   current_directory   = os.getcwd()
-  result_folder_train = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/training_data_{args.example}/{key}"
-  result_folder_test  = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/testing_data_{args.example}/{key_test}"
+  result_folder_train = f"{current_directory}/SCS_FEM_{args.problem}/training_data_{args.example}/{key}"
+  result_folder_test  = f"{current_directory}/SCS_FEM_{args.problem}/testing_data_{args.example}/{key_test}"
 
   run_data_filename   = f"{result_folder_train}/trial_{trial}"
 
@@ -177,9 +177,9 @@ if __name__ == '__main__':
   test_data_filename = f"{result_folder_test}/test_data{str(m_test).zfill(8)}_{args.test_pointset}"
 
   if args.test_pointset == 'CC_sparse_grid':
-      test_results_filename = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{d}d_{args.SG_level}_SG_test_data.mat"
+      test_results_filename = f"{current_directory}/SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{d}d_{args.SG_level}_SG_test_data.mat"
   else:
-      test_results_filename = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{d}d_{m_test}_mUR_test_data.mat"
+      test_results_filename = f"{current_directory}/SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{d}d_{m_test}_mUR_test_data.mat"
 
   # See if this is useful later on
   m_test_check = m_test
@@ -257,7 +257,7 @@ if __name__ == '__main__':
         print('===================================================================')
 
     print('===================================================================')
-    print('Saving results to', test_data_filename)
+    print('Saving results to', test_data_filename + '_pts_test_data.mat')
     print('===================================================================')
     print('       ____________________________________________________________________')
     print('                                Beginning testing data                     ')
@@ -323,8 +323,8 @@ if __name__ == '__main__':
 
     if args.test_pointset == 'CC_sparse_grid':
         run_data['w_test_weights'] = w_test_weights
-
-    sio.savemat(test_data_filename + '_pts_test_data.mat', run_data)
-    print('Saved in:', test_data_filename)
+    save_test = test_data_filename + '_pts_test_data.mat'
+    sio.savemat(save_test, run_data)
+    print('Saved in:', save_test)
 
    

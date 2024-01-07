@@ -15,15 +15,15 @@ def str2exp(s):
 class MyExpression(UserExpression):
   def eval(self, value, x):
     if x[1] >= 1- DOLFIN_EPS: 
-      value[0] = 1.0*x[0]*(1.-x[0])
+      value[0] = 0.0
     elif x[1] <= 0.0+ DOLFIN_EPS: 
-      value[0] = 1.0*x[0]*(1.-x[0])
+      value[0] = 0.0
     elif x[0] > 1- DOLFIN_EPS:
-      value[0] = 1.0*x[1]*(1.-x[1])
+      value[0] = 256.0*pow(1.0*x[1]*(1.-x[1]),4)
     elif x[0] < -0.0+ DOLFIN_EPS:
       value[0] = 0.0 
     elif ( (x[0] > 0.0625 - DOLFIN_EPS) and (x[0] < 0.1875 +DOLFIN_EPS) and (x[1] > 0.4375 - DOLFIN_EPS) and (x[1] < 0.5625 + DOLFIN_EPS) ):
-      value[0] = -0.0   
+      value[0] = 0.0   
     else:
       value[0] = 0.0
   def value_shape(self):
@@ -45,14 +45,54 @@ def gen_dirichlet_data_poisson(z,mesh, Hh, example,i,d,train):
     nn        = FacetNormal(mesh)
 
     # Define the right hand side and diffusion coefficient
-    if example == 'other':
+    #===================================================================================================  
+    # *********** Variable coefficients ********** #
+
+
+    if example =='logKL_expansion':
+        pi = 3.14159265359
+        pi_s = str(pi)
+        L_c = 1.0/8.0
+        L_p = np.max([1.0, 2.0*L_c])
+        L_c_s = str(L_c)
+        L_p_s = str(L_p)
+        L = L_c/L_p
+        L_s = str(L)
+
+        string = '1.0+sqrt(sqrt(' + pi_s + ')*' + L_s + '/2.0)*' + str(z[0])
+        for j in range(2, d):
+            term = str(z[j-1]) + '*sqrt(sqrt(' + pi_s + ')*' + L_s + ')*exp(-pow(floor(' 
+            term = term + str(j) + '/2.0)*' + pi_s + '*' + L_s + ',2.0)/8.0)'
+            if j % 2 == 0:
+                term = term + '*sin(floor(' + str(j) + '/2.0)*' + pi_s + '*x/' + L_p_s + ')'
+            else:
+                term = term + '*cos(floor(' + str(j) + '/2.0)*' + pi_s + '*x/' + L_p_s + ')'
+
+            string = string + '+' + term
+        string = 'exp(' + string + ')'
+
+    elif example == 'aff_coeff2':
         pi     = str(3.14159265359)
-        string = '1.9 + '
+        string = '2.62 + '
         for j in range(d):
-            term   =  str(z[j])+ '*sin('+pi+'*(x+y)*('+str(j)+'+1) )/(pow('+str(j)+'+1.0,9/5))'
+            term   =  str(z[j])+ '*sin('+pi+'*x*('+str(j)+'+1.0) )*pow('+str(j)+'+1.0,-3/2)'
             string =  string + '+' + term
-    string  =  '1.0/('+string+')' 
-    a       = Expression(str2exp(string), degree=2, domain=mesh)
+
+    elif example == 'aff_coeff1': 
+        pi     = str(3.14159265359)
+        string = '1.89 + '
+        for j in range(d):
+            term   =  str(z[j])+ '*sin('+pi+'*x*('+str(j)+'+1.0) )*pow('+str(j)+'+1.0,-9/5)'
+            string =  string + '+' + term
+
+    else:
+      print('error')
+
+    #===================================================================================================  
+
+
+    string  =  'pow('+string+',-1)' 
+    a       = Expression(str2exp(string), degree=1, domain=mesh)
     f       = Constant(0.0)
     u, Rsig = split(Usol)
     v, Rtau = TestFunctions(Hh)

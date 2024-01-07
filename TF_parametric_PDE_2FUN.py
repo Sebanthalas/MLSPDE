@@ -45,41 +45,39 @@ if __name__ == '__main__':
     # parse the arguments from the command line
     parser = argparse.ArgumentParser()
 
-    # General settngs 
-    parser.add_argument("--test_pointset",      default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
-    parser.add_argument("--run_ID",             type = str, help = "String for naming batch of trials in this run (default timestamp)")
-    parser.add_argument("--input_dim",          default = 1, type = int, help = "Dimension of the input (default 1)")
-    parser.add_argument("--nb_train_points",     default = 1, type = int, help = "Number of points to use in training (default 1)")
-    parser.add_argument("--train_pointset",     default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
-    parser.add_argument("--precision",          default = 'double', type = str, help = "Switch for double vs. single precision")
-    parser.add_argument("--nb_test_points",     default = 1, type = int, help = "Number of points to use in testing (default 1)")
-    # PDE solver settings
-    parser.add_argument("--problem",            default = 'other', type = str, help = "Defines the PDE problem to solve")
-    parser.add_argument("--FE_degree",          default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
+   
+
+    # ARGs: FEM
+    parser.add_argument("--run_ID",             type = str, help = "String for naming batch of trials in this run (default timestamp)") 
     parser.add_argument("--example",            default = 'other', type = str, help = "Example function to use in the PDE (default other)")
-    parser.add_argument("--trial_num",          default = 0, type = int, help = "Number for the trial to run (default 0)")
+    parser.add_argument("--problem",            default = 'other', type = str, help = "Defines the PDE problem to solve")
+    parser.add_argument("--train_pointset",     default = 'uniform_random', type = str, help = "Type of points to use in training (default uniform_random)")
+    parser.add_argument("--DNN_max_nb_train_pts", default = 5, type = int, help = "Defines the max number of training points available")
+    parser.add_argument("--test_pointset",      default = 'CC_sparse_grid', type = str, help = "Type of points to use in testing (default CC_sparse_grid)")
+    parser.add_argument("--nb_test_points",     default = 1, type = int, help = "Number of points to use in testing (default 1)")
+    parser.add_argument("--FE_degree",          default = 1, type = int, help = "Defines FE polynomial degree (default mesh number 2)")
     parser.add_argument("--SG_level",           default = 5, type = int, help = "Maximum order p of the polynomial space")
-    parser.add_argument("--fenics_log_level",   default = 30, type = int, help = "Log level for the FEniCS solver (default 30 = WARNING)")
-    #DNN parameters
+    parser.add_argument("--input_dim",          default = 1, type = int, help = "Dimension of the input (default 1)")
     parser.add_argument("--DNN_activation",     default = 'relu', type = str, help = "Defines the activation function")
     parser.add_argument("--DNN_precision",      default = 'single', type = str, help = "Defines the PDE problem to solve")
+    parser.add_argument("--DNN_error_tol",      default = '5e-4', type = str, help = "Defines the error tolerance")
     parser.add_argument("--DNN_optimizer",      default = 'adam', type = str, help = "Defines the optimizer")
     parser.add_argument("--DNN_loss_function",  default = 'l2', type = str, help = "Defines the loss function")
     parser.add_argument("--DNN_blocktype",      default = 'default', type = str, help = "Defines blocktype")
     parser.add_argument("--DNN_initializer",    default = 'uniform', type = str, help = "Defines the initializer")
     parser.add_argument("--DNN_lrn_rate_schedule", default = 'exp_decay', type = str, help = "Defines the learning rate schedule")
     parser.add_argument("--DNN_type_loss",      default = 'customize', type = str, help = "Defines the type of loss")
-    parser.add_argument("--DNN_error_tol",      default = '5e-4', type = str, help = "Defines the error tolerance")
     parser.add_argument("--DNN_epochs",           default = 20, type = int, help = "Defines the number of epochs")
     parser.add_argument("--DNN_nb_layers",        default = 2, type = int, help = "Defines the number of layers")
-    parser.add_argument("--DNN_max_nb_train_pts", default = 5, type = int, help = "Defines the max number of training points available")
-    parser.add_argument("--DNN_test_epoch",     default = 50, type = int, help = "Defines the test epochs; not useful")
-    parser.add_argument("--DNN_show_epoch",     default = 10, type = int, help = "Defines how often the epochs are deplayed")
-    parser.add_argument("--Use_batching",       default = 0, type = int, help = "Defines the use of batching. =0 (no batching) = NUM (Batch m/NUM)")
+    parser.add_argument("--nb_train_points",     default = 1, type = int, help = "Number of points to use in training (default 1)")
     parser.add_argument("--whichfun",           default = "_u_", type = str, help = "Defines the function to approximate")
-
- 
-
+    parser.add_argument("--DNN_show_epoch",     default = 10, type = int, help = "Defines how often the epochs are deplayed")
+    parser.add_argument("--DNN_test_epoch",     default = 50, type = int, help = "Defines the test epochs; not useful")
+    parser.add_argument("--Use_batching",       default = 0, type = int, help = "Defines the use of batching. =0 (no batching) = NUM (Batch m/NUM)")
+    parser.add_argument("--trial_num",          default = 1, type = int, help = "Number for the trial to run (default 0)")
+    parser.add_argument("--fenics_log_level",   default = 30, type = int, help = "Log level for the FEniCS solver (default 30 = WARNING)")
+    
+    
     timestamp = str(int(time.time()));
 
     
@@ -153,17 +151,15 @@ if __name__ == '__main__':
     type_loss          = args.DNN_type_loss #'customize'
     blocktype          = args.DNN_blocktype #'default'
     sigma              = 0.1 
-    #error_tol          = args.DNN_error_tol 
     nb_epochs          = args.DNN_epochs 
-    #nb_trials          = args.DNN_total_trials
     best_loss          = 10
     m_test = args.nb_test_points
 
     # Look for a different number of m_test (possibly from using Tasmanian)
-    current_directory   = os.getcwd()
+    current_directory   = '/home/semoraga/projects/def-adcockb/semoraga/in_cedar_3'
 
     if args.test_pointset == 'CC_sparse_grid':
-        test_results_filename = f"{current_directory}/results/scratch/SCS_FEM_{args.problem}/testing_data_{args.example}/{d}d_{args.SG_level}_SG_test_data.mat"
+        test_results_filename = f"{current_directory}/SCS_FEM_{args.problem}/testing_data_{args.example}/{d}d_{args.SG_level}_SG_test_data.mat"
         getting_m_test    = sio.loadmat(test_results_filename)
         sorted(getting_m_test.keys())
         m_test = getting_m_test['m_test'][0,0]
@@ -184,14 +180,14 @@ if __name__ == '__main__':
 
     scratchdir_train = os.path.join(
                                     current_directory,
-                                    f"results/scratch/SCS_FEM_{args.problem}/training_data_{args.example}/{key}",)
+                                    f"SCS_FEM_{args.problem}/training_data_{args.example}/{key}",)
     scratchdir_tests = os.path.join(
                                     current_directory,
-                                    f"results/scratch/SCS_FEM_{args.problem}/testing_data_{args.example}/{key_test}",)
+                                    f"SCS_FEM_{args.problem}/testing_data_{args.example}/{key_test}",)
 
     scratchdir_resul = os.path.join(
                                     current_directory,
-                                     f"results/scratch/SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{trial}/{key_DNN}",)
+                                     f"SCS_FEM_{args.problem}/{unique_run_ID}_{args.example}/{trial}/{key_DNN}",)
 
     result_folder = scratchdir_resul
 
@@ -213,7 +209,7 @@ if __name__ == '__main__':
 
     DNN_results_filename = os.path.join(
                                     result_folder,
-                                    f"data_m_{str(m).zfill(6)}_deg_{deg}_af_{activation}{nb_layers}x{nb_nodes_per_layer}_final.mat",)
+                                    f"data_m_{str(m).zfill(6)}_deg_{deg}_trial_{trial}_d_{d}_{activation}{nb_layers}x{nb_nodes_per_layer}_final.mat",)
 
     DNN_model_final_savedir = os.path.join(
                                     result_folder, f"DNN_finalModel_trial_",)
@@ -243,8 +239,8 @@ if __name__ == '__main__':
     #####################################################################################################################
 
     # Extract the coefficients of all the functions and output dimensions
-    u_train_data         =  Train_coeff_u # extract_specific_function(Train_coeff_u,0).T
-    output_dim_u         = u_train_data.shape[1]
+    #u_train_data         =  Train_coeff_u # extract_specific_function(Train_coeff_u,0).T
+    output_dim_u         = Train_coeff_u.shape[1]
     
 
     if os.path.exists(test_data_filename):
@@ -376,7 +372,6 @@ if __name__ == '__main__':
     DNN_run_data['nb_nodes_per_layer']             = nb_nodes_per_layer
     DNN_run_data['nb_train_points']                = m
     DNN_run_data['nb_test_points']                 = m_test
-    #DNN_run_data['nb_trials']                      = args.nb_trials
     DNN_run_data['trial']                          = trial
     DNN_run_data['run_ID']                         = unique_run_ID
     DNN_run_data['blocktype']                      = args.DNN_blocktype
@@ -394,7 +389,7 @@ if __name__ == '__main__':
     
 
     DNN_run_data['x_train_data']                   = y_in_train_data
-    DNN_run_data['y_train_data']                   = Train_coeff_u
+    #DNN_run_data['y_train_data']                   = Train_coeff_u
     DNN_run_data['x_test_data']                    = y_in_test_data
     DNN_run_data['y_test_data']                    = Test_coeff_u
     DNN_run_data['w_quadrature_weights_test']      = w_test_weights
@@ -408,10 +403,7 @@ if __name__ == '__main__':
     DNN_run_data['DNN_show_epoch']                 = args.DNN_show_epoch
     
 
-   
     DNN_run_data['precision']                      = args.DNN_precision
-    DNN_run_data['intermediate_testing']           = 1
-    DNN_run_data['intermediate_testing_interval']  = 1000
     DNN_run_data['DNN_loss_function']              = args.DNN_loss_function
    
 
@@ -468,9 +460,9 @@ if __name__ == '__main__':
     DNN_u.compile(loss=loss, optimizer=opt, metrics=['accuracy'])
     print('Using data x_train_data (point samples) size ' + str(x_train_data.shape))
     if args.whichfun =='_u_':
-        print('Using data train_data (FE coefficients) size ' + str(u_train_data.shape))
+        print('Using data train_data (FE coefficients) size ' + str(Train_coeff_u.shape))
     elif args.whichfun =='_p_':
-        print('Using data train_data (FE coefficients) size ' + str(u_train_data.shape))
+        print('Using data train_data (FE coefficients) size ' + str(Train_coeff_u.shape))
 
 
     prediction_history = EarlyStoppingPredictHistory(DNN_run_data)

@@ -117,7 +117,7 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                     norm_u   = norm_u
                     #error_H1 = norm(error, 'H1')
 
-                    L2_err = L2_err + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
+                    L2_err = L2_err   + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                     L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                 #U_dnn = u_sol-uh
                 #plot(U_dnn)
@@ -200,11 +200,11 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 L2_err  = L2_err  + np.abs(error_L2)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
                 L2_norm = L2_norm + np.abs(norm_u)**(2.0)*self.run_data['w_quadrature_weights_test'][i]
 
-            U_dnn = u_sol-uh
-            plot(U_dnn)
-            filename = 'results/_'+str(epoch)+'_DNNu.png'
-            plt.savefig ( filename )
-            plt.close()    
+            #U_dnn = u_sol-uh
+            #plot(U_dnn)
+            #filename = 'results/_'+str(epoch)+'_DNNu.png'
+            #plt.savefig ( filename )
+            #plt.close()    
             L2_err = np.sqrt(np.abs(L2_err*2**(-1.0*self.run_data['input_dim'])))
             L2_norm = np.sqrt(np.abs(L2_norm*2**(-1.0*self.run_data['input_dim'])))
             L2_err =L2_err/L2_norm
@@ -254,7 +254,7 @@ class EarlyStoppingPredictHistory(tf.keras.callbacks.Callback):
                 self.Tosave_data['run_time'] = time.time() - self.run_data['start_time']
                 self.Tosave_data['percentiles_at_save'] = self.percs
                 self.Tosave_data['percentiles_save_iters'] = self.num_perc
-                self.Tosave_data['y_DNN_pred'] = y_DNN_pred
+                #self.Tosave_data['y_DNN_pred'] = y_DNN_pred
                 self.Tosave_data['iterations'] = self.steps
                 self.Tosave_data['loss_per_iteration'] = self.losses
                 self.Tosave_data['lrn_rates'] = self.lrn_rates
