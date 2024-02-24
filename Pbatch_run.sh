@@ -18,7 +18,6 @@ declare -r prob=0
 # Declare which function to approximate 
 #  DNN_whichfun = 0 -> "_u_"; 
 #  DNN_whichfun = 1 -> "_p_"; 
-#  DNN_whichfun = 2 -> "_u_p_"; (approximate both variables at the same time; not tested) 
 declare -r DNN_whichfun=0   
           
 
@@ -200,6 +199,7 @@ do
             echo "Problem must be Possion or NSB"
         fi
 
+
         ############################################
         for trialss in {1..1..1}
         do
@@ -218,15 +218,16 @@ do
                 # 11 =  $UseFEM_tn
 
                 if [ "$i" -eq "0" ]; then
+                    # Affine coefficient "aff_F9"
                     python3 FEM_parametric_PDE_example.py --run_ID $run_ID --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train $UseFEM_tn --trial_num $trialss 
                     #sbatch PTF.sh $run_ID $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim $UseFEM_tn   #--trial_num 1 
                 elif [ "$i" -eq "1" ]; then
+                    # Affine coefficient "aff_S3"
                     python3 FEM_parametric_PDE_example.py --run_ID $run_ID --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train $UseFEM_tn --trial_num $trialss 
-
                     #sbatch PTS.sh $run_ID $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim $UseFEM_tn   #--trial_num 1 
                 elif [ "$i" -eq "2" ]; then
+                    # Affine coefficient "logKL"
                     python3 FEM_parametric_PDE_example.py --run_ID $run_ID --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train $UseFEM_tn --trial_num $trialss 
-
                     #sbatch PTLK.sh $run_ID $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim $UseFEM_tn  #--trial_num 1 
                 else
                     echo "must be 0 through 2"
@@ -251,12 +252,15 @@ do
             # 10 =  $input_dim
             # 11 =  $UseFEM_tn = 0 (needs to be 0 because it is only testing)
             if [ "$i" -eq "0" ]; then
+                # Affine coefficient "aff_F9"
                 python3 FEM_parametric_PDE_example.py --run_ID $run_ID2 --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train 0 --trial_num 1 
                 #sbatch PTeF.sh $run_ID2 $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim 0  #--trial_num 1 
             elif [ "$i" -eq "1" ]; then
+                # Affine coefficient "aff_S3"
                 python3 FEM_parametric_PDE_example.py --run_ID $run_ID2 --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train 0 --trial_num 1 
                 #sbatch PTeS.sh $run_ID2 $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim 0  #--trial_num 1 
             elif [ "$i" -eq "2" ]; then
+                # Affine coefficient "logKL"
                 python3 FEM_parametric_PDE_example.py --run_ID $run_ID2 --example $example --problem $problem --train_pointset $training_ptset --nb_train_points $train_pts --test_pointset $testing_ptset --nb_test_points $nb_test_points --FE_degree $FE_degree --SG_level $SG_level --input_dim $input_dim --train 0 --trial_num 1 
                 #sbatch PTeLK.sh $run_ID2 $example $problem $training_ptset $train_pts $testing_ptset $nb_test_points $FE_degree $SG_level $input_dim 0  #--trial_num 1 
             else
