@@ -26,13 +26,16 @@ It is the main code that sets parameters, passes them to the other scripts, and 
 The structure is as follows:
 
 Line 10  - 146: Set the parameters; choose which problem and function to approximate;
+
 Line 147 - 202: Initiate the main loops over 3 different affine coefficients; loop over 3 dimensions (d=4,8,16) ; 
                 Declare how many total training points you will use (L-177) for the Poisson problem and (L189) for the NSB problem;
                 Declare the SG level for each problem and dimension.
---------------
-WARNING !               
-Line 204 : Set a loop over trials. This is only needed when you run locally, and you want to do one or more than one trial. If you are running on slurm, this is already done in the PTF.sh files, so you should comment on this line in this last case.     
---------------
+                
+WARNING !  
+=========
+(w)-> Line 204 : Set a loop over trials. This is only needed when you run locally, and you want to do one or more than one trial. If you are running on slurm, this is already done in the PTF.sh files, so you should comment on this line in this last case.     
+
+_____________________________________________
 Line 205 - 238:  In case of training. Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTF.sh".           For each coefficient a(x,y) creates the training points.
 Line 240 - 267:  In case of testing.  Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTeF.sh".          For each coefficient a(x,y) creates the testing points.
 Line 205 - 238:  In case of DNN.      Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "AllTrials_DNN.sh". Trains and test a fully connected DNN.
