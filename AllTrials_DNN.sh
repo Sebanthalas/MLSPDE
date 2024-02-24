@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=6       # There are 24 CPU cores on Cedar p100 GPU nodes
 #SBATCH --gres=gpu:p100:4       # number of GPUs to use
 #SBATCH --mem=0                 # memory per node (0 = use all of it)
-#SBATCH --time=00:60:00         # time (DD-HH:MM)
+#SBATCH --time=00:08:30         # time (DD-HH:MM)
 #SBATCH --account=def-adcockb
 
 
