@@ -3,8 +3,8 @@ Sebastian Moraga Scheuermann, Simon Fraser University, 2024.
 
 This code implements the fully connected Deep Neural Network (DNN) architectures considered in the thesis 
 "Optimal and efficient algorithms for learning high-dimensional, Banach-valued functions from limited samples".
-
 ===============================
+
 What the code can do:
 ===============================
 -It can create the training points for the parametric poisson equation with Dirichlet boundary conditions and the parametric Navier-Stokes-Brikman equations.
@@ -60,7 +60,7 @@ DNN_trial.sh (Runs the DNN )
 It is the script that actually runs the python code.
 It specifies which GPU to use (argument 28, an integer 0, 1, 2, or 3), and passes the command line arguments to the python code, which uses the argparser to create necessary variables.
 
-==============
+
 PYTHON CODES
 ==============
 
@@ -71,7 +71,7 @@ PYTHON CODES
 -callbacks: script with the instructions for the DNN and save the files.
 -sympy2fenics: script used to write the differential equations in a simplified  way.
 
-===============================
+
 INSTRUCTIONS TO RUN LOCALLY
 ===============================
 The code is ready to run locally "as it is"if you have the packages detailed below.
