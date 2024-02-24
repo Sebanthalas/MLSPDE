@@ -86,10 +86,15 @@ PYTHON CODES
 ==============
 
 -FEM_parametric_PDE_example: script to create training and testing points.
+
 -PDE_data_NSB: script to obtain the solution via FEniCS of a single sample for NSB eq.
+
 -PDE_data_poisson: script to obtain the solution via FEniCS of a single sample for Poisson eq.
+
 -TF_parametric_PDE_2FUN: script to set the DNN architecture and use of parameters.
+
 -callbacks: script with the instructions for the DNN and save the files.
+
 -sympy2fenics: script used to write the differential equations in a simplified  way.
 
 
@@ -100,10 +105,15 @@ The code is ready to run locally "as it is"if you have the packages detailed bel
 Packages:
 ---------------------------------------------
 tensorflow                   2.14.0  or (2.12 CEDAR using CUDA)
+
 fenics-dijitso               2019.2.0.dev0
+
 fenics-dolfin                2019.2.0.dev0
+
 fenics-ffc                   2019.2.0.dev0
+
 fenics-fiat                  2019.2.0.dev0
+
 TASMANIAN                    7.3
 
 Examples:
