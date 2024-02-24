@@ -13,7 +13,7 @@ declare -r UseDnn=1         # Train/Test DNN           = 1 ; no Train/Test DNN  
 
 # Which problem you want to approximate?
 # Options: "poisson"=0 ; "NSB"=1 ; 
-declare -r prob=1 
+declare -r prob=0 
 
 # Declare which function to approximate 
 #  DNN_whichfun = 0 -> "_u_"; 
@@ -23,7 +23,7 @@ declare -r DNN_whichfun=0
           
 
 # FEM degree & testing points
-declare -r FE_degree=0
+declare -r FE_degree=1
 declare -r testing_ptset="CC_sparse_grid" #  "uniform_random" ;  "CC_sparse_grid"
 
 
