@@ -14,9 +14,8 @@ For every parameter y, the formulation for the Poisson equation is a mixed formu
 -It can train points and test a fully connected DNN approximating each desired solution of a stochastic PDE.
 
 ===============================
-Explanation of each file
+Explanation of each file:
 ===============================
-
 (The following script is to run locally/slurm):
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
  Pbatch_run.sh    
