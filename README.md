@@ -18,7 +18,7 @@ For every parameter y, the formulation for the Poisson equation is a mixed formu
 
 Explanation of each file:
 ===============================
-(The following script is to run locally/slurm):
+(The following script is to run locally/remotly):
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
  Pbatch_run.sh    
 
