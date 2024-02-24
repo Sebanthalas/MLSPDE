@@ -40,9 +40,9 @@ WARNING !
 _____________________________________________
 Line 205 - 238:  In case of training. Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTF.sh".           For each coefficient a(x,y) creates the training points.
 
-Line 240 - 267:  In case of testing.  Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTeF.sh".          For each coefficient a(x,y) creates the testing points.
+Line 240 - 271:  In case of testing.  Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTeF.sh".          For each coefficient a(x,y) creates the testing points.
 
-Line 205 - 238:  In case of DNN.      Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "AllTrials_DNN.sh". Trains and test a fully connected DNN.
+Line 273 - 320:  In case of DNN.      Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "AllTrials_DNN.sh". Trains and test a fully connected DNN.
                 
 __________
 (The following scripts only can run on slurm):
@@ -62,14 +62,14 @@ It also passes the final command line arguments to the next file and creates log
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 PTeS.sh (PoissonTestingScript)
 ____________
-It is one of the three scripts from L240-267 in Pbatch_run.sh. Since you don't need different trials for testing, it only creates the testing points. 
+It is one of the three scripts from L240-271 in Pbatch_run.sh. Since you don't need different trials for testing, it only creates the testing points. 
 
 It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 AllTrials_DNN.sh (Pass the trials to the DNNs)
 ____
 
-It is one of the three scripts from L205-238 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. 
+It is one of the three scripts from L273-320 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. 
 
 It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 
