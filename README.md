@@ -28,7 +28,9 @@ The structure is as follows:
 Line 10  - 146: Set the parameters; choose which problem and function to approximate;
 
 Line 147 - 202: Initiate the main loops over 3 different affine coefficients; loop over 3 dimensions (d=4,8,16) ; 
+
                 Declare how many total training points you will use (L-177) for the Poisson problem and (L189) for the NSB problem;
+                
                 Declare the SG level for each problem and dimension.
                 
 WARNING !  
@@ -37,7 +39,9 @@ WARNING !
 
 _____________________________________________
 Line 205 - 238:  In case of training. Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTF.sh".           For each coefficient a(x,y) creates the training points.
+
 Line 240 - 267:  In case of testing.  Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTeF.sh".          For each coefficient a(x,y) creates the testing points.
+
 Line 205 - 238:  In case of DNN.      Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "AllTrials_DNN.sh". Trains and test a fully connected DNN.
                 
 __________
@@ -45,22 +49,31 @@ __________
 ____________________________________________________________________________________________________________________________________________________________________________________________________________
 PTS.sh (PoissonTrainingScript)
 It is one of the three scripts from L205-238 in Pbatch_run.sh. This script gets executed to create all the trials. It sets up the training using the group of commands at the top for sbatch and then iterates over groups of 4  "SLURM_ARRAY_TASK_ID" tasks which are run to create 12 trials in total.
-That is, it creates an array of 4 IDs. Then iterates to send 4 jobs to each ID. Basically, to create 12 trials for the possion:
+
+That is, it creates an array of 4 IDs. Then iterates to send 4 jobs to each ID. Basically, to create 12 trials for the passion:
+
 Line 28 : Trials from 0 to 3
+
 Line 29 : Trials from 4 to 7
+
 Line 30 : Trials from 8 to 11
- It also passes the final command line arguments to the next file and creates logs in the “run_out" folder in the same directory as the scripts.
+
+It also passes the final command line arguments to the next file and creates logs in the “run_out" folder in the same directory as the scripts.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 PTeS.sh (PoissonTestingScript)
 It is one of the three scripts from L240-267 in Pbatch_run.sh. Since you don't need different trials for testing, it only creates the testing points. 
+
 It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 AllTrials_DNN.sh (Pass the trials to the DNNs)
-It is one of the three scripts from L205-238 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
+It is one of the three scripts from L205-238 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. 
+
+It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 DNN_trial.sh (Runs the DNN )
 It is the script that actually runs the python code.
+
 It specifies which GPU to use (argument 28, an integer 0, 1, 2, or 3), and passes the command line arguments to the python code, which uses the argparser to create necessary variables.
 
 
