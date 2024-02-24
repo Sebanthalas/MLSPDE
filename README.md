@@ -1,7 +1,9 @@
 # (M)achine (L)earning _ (S)tochastic (PDE)
 Sebastian Moraga Scheuermann, Simon Fraser University, 2024.
 
-This code implements the fully connected Deep Neural Network (DNN) architectures considered in the thesis "Optimal and efficient algorithms for learning high-dimensional, Banach-valued functions from limited samples".
+This code implements the fully connected Deep Neural Network (DNN) architectures considered in the thesis 
+"Optimal and efficient algorithms for learning high-dimensional, Banach-valued functions from limited samples".
+
 ===============================
 What the code can do:
 ===============================
