@@ -61,17 +61,22 @@ Line 30 : Trials from 8 to 11
 It also passes the final command line arguments to the next file and creates logs in the “run_out" folder in the same directory as the scripts.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 PTeS.sh (PoissonTestingScript)
+____________
 It is one of the three scripts from L240-267 in Pbatch_run.sh. Since you don't need different trials for testing, it only creates the testing points. 
 
 It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 AllTrials_DNN.sh (Pass the trials to the DNNs)
+____
+
 It is one of the three scripts from L205-238 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. 
 
 It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
 
 _____________________________________________________________________________________________________________________________________________________________________________________________________________
 DNN_trial.sh (Runs the DNN )
+_____
+
 It is the script that actually runs the python code.
 
 It specifies which GPU to use (argument 28, an integer 0, 1, 2, or 3), and passes the command line arguments to the python code, which uses the argparser to create necessary variables.
