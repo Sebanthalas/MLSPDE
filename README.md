@@ -1,127 +1,224 @@
 # (M)achine (L)earning _ (S)tochastic (PDE)
-Sebastian Moraga Scheuermann, Simon Fraser University, 2024.
+# Description
+This README provides detailed instructions and explanations for running code related to parametric PDE (Partial Differential Equation) simulations, specifically focusing on the Poisson problem, Navier-Stokes-Brinkman (NSB) and Boussinesq equations. It includes information on the folder structure, file contents, functionality, and how to use the code for generating training sample points, testing points, training and testing DNNs (Deep Neural Networks), and generating plots using MATLAB.
 
-This code implements the fully connected Deep Neural Network (DNN) architectures considered in the thesis 
-"Optimal and efficient algorithms for learning high-dimensional, Banach-valued functions from limited samples".
-===============================
-
-What the code can do:
-===============================
--It can create the training points for the parametric poisson equation with Dirichlet boundary conditions and the parametric Navier-Stokes-Brikman equations.
-
-For every parameter y, the formulation for the Poisson equation is a mixed formulation in a Hilbert space. The NSB equations use a mixed formulation with solutions in Banach spaces.
-
--It can create the testing points.
-
--It can train points and test a fully connected DNN approximating each desired solution of a stochastic PDE.
+It provides step-by-step instructions for running the code locally, changing parameters for different experiments, and generating plots for visualization. It also lists the required packages and their versions for running the code successfully.
 
 
-Explanation of each file:
-===============================
-(The following script is to run locally/remotly):
-_____________________________________________________________________________________________________________________________________________________________________________________________________________
- Pbatch_run.sh    
-
-It is the main code that sets parameters, passes them to the other scripts, and executes a large loop that submits all of the required jobs to the local machine or slurm batch system using “sbatch".
-The structure is as follows:
-
-Line 10  - 146: Set the parameters; choose which problem and function to approximate;
-
-Line 147 - 202: Initiate the main loops over 3 different affine coefficients; loop over 3 dimensions (d=4,8,16) ; 
-
-                Declare how many total training points you will use (L-177) for the Poisson problem and (L189) for the NSB problem;
-                
-                Declare the SG level for each problem and dimension.
-                
-WARNING !  
-=========
-(w)-> Line 204 : Set a loop over trials. This is only needed when you run locally, and you want to do one or more than one trial. If you are running on slurm, this is already done in the PTF.sh files, so you should comment on this line in this last case.     
-
-_____________________________________________
-Line 205 - 238:  In case of training. Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTF.sh".           For each coefficient a(x,y) creates the training points.
-
-Line 240 - 271:  In case of testing.  Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "PTeF.sh".          For each coefficient a(x,y) creates the testing points.
-
-Line 273 - 320:  In case of DNN.      Pass the parameters to the python code (locally) or the following sbatch file (slurm),e.g., "AllTrials_DNN.sh". Trains and test a fully connected DNN.
-                
-__________
-(The following scripts only can run on slurm):
-____________________________________________________________________________________________________________________________________________________________________________________________________________
-PTS.sh (PoissonTrainingScript)
-It is one of the three scripts from L205-238 in Pbatch_run.sh. This script gets executed to create all the trials. It sets up the training using the group of commands at the top for sbatch and then iterates over groups of 4  "SLURM_ARRAY_TASK_ID" tasks which are run to create 12 trials in total.
-
-That is, it creates an array of 4 IDs. Then iterates to send 4 jobs to each ID. Basically, to create 12 trials for the passion:
-
-Line 28 : Trials from 0 to 3
-
-Line 29 : Trials from 4 to 7
-
-Line 30 : Trials from 8 to 11
-
-It also passes the final command line arguments to the next file and creates logs in the “run_out" folder in the same directory as the scripts.
-_____________________________________________________________________________________________________________________________________________________________________________________________________________
-PTeS.sh (PoissonTestingScript)
-____________
-It is one of the three scripts from L240-271 in Pbatch_run.sh. Since you don't need different trials for testing, it only creates the testing points. 
-
-It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
-_____________________________________________________________________________________________________________________________________________________________________________________________________________
-AllTrials_DNN.sh (Pass the trials to the DNNs)
-____
-
-It is one of the three scripts from L273-320 in Pbatch_run.sh. It sets up the run using the group of commands at the top for sbatch and then iterates over groups of 4 tasks, which are run concurrently on the 4 large GPUs on the compute nodes until 12 trials are run for the passion equation and 8 for the NSB. 
-
-It also passes the final command line arguments to the following file and creates logs in the “run_out" folder in the same directory as the scripts.
-
-_____________________________________________________________________________________________________________________________________________________________________________________________________________
-DNN_trial.sh (Runs the DNN )
-_____
-
-It is the script that actually runs the python code.
-
-It specifies which GPU to use (argument 28, an integer 0, 1, 2, or 3), and passes the command line arguments to the python code, which uses the argparser to create necessary variables.
+ ![ezgif com-animated-gif-maker](https://github.com/Sebanthalas/MLSPDE/assets/21182719/7fc260bf-362b-487d-a4e4-8f3c12363990)
 
 
-PYTHON CODES
-==============
+### General Prerequisites
 
--FEM_parametric_PDE_example: script to create training and testing points.
+Before using the MATLAB plotting scripts, make sure you have MATLAB installed on your system.
+Before using the python scripts, make sure you have python installed on your system along with dependences.
 
--PDE_data_NSB: script to obtain the solution via FEniCS of a single sample for NSB eq.
+### Mean plots and Shaded Plots
 
--PDE_data_poisson: script to obtain the solution via FEniCS of a single sample for Poisson eq.
+The scripts `plot_book_style.m`, `get_fig_param.m`,  from [https://github.com/simone-brugiapaglia/sparse-hd-book/tree/main/utils/graphics](https://github.com/simone-brugiapaglia/sparse-hd-book/tree/main/utils/graphics), slightly modified for the purpose of plotting these experiments, is used to generate mean  line plots along with shaded plots representing one standard deviation.
 
--TF_parametric_PDE_2FUN: script to set the DNN architecture and use of parameters.
-
--callbacks: script with the instructions for the DNN and save the files.
-
--sympy2fenics: script used to write the differential equations in a simplified  way.
+These should be placed in a directory of the form "/path_to_sparse-hd-book-main/sparse-hd-book-main/utils" and the pathdef.m file in plot_files should be modified accordingly on line 17: '/path_to_sparse-hd-book-main/sparse-hd-book-main/utils:', ...'
 
 
-INSTRUCTIONS TO RUN LOCALLY
-===============================
-The code is ready to run locally "as it is"if you have the packages detailed below.
+===========================================================================================================================================
+## Folder: CODE_P\
+### Contains:
+- Folder      : meshes , run_out
+-- meshes: contain physical discretization meshes.
+-- run_out: folder that  will contain some outputs (FEM plots or slurm outputs for cluster use) of the code.
+- Python files: callbacks.py, FEM_parametric_PDE_example.py, sympy2fenics.py, TF_parametric_PDE_2FUN.py, PDE_data_poisson.py
+- Bash script : Pbatch.sh 
+
+### Functionality
+- Creates training sample points approximating u for the parametric Poisson problem with mixed formulation.
+- Creates testing points.
+- Trains points and tests a fully connected DNN approximating each desired solution of a stochastic PDE.
+- Outputs: A folder containing the raw data results and plots.
+
+
+## Fast Use (as it is) to approximate 12 trials of  u:
+
+1. Ensure all necessary packages are installed and loaded.
+2. Run on a terminal: `bash Pbatch.sh`.
+   This generates a folder (if not exist) containing sample values for 500 training points, sample values for 1105 testing points for d=4 and 3937 for d=8, and the results of a 4,8-dimensional  4x40 or 10x100 elu,tanh,ReLU DNN architecture using m=[30,60,...,480] training points. 
+
+## Generate plots   
+1. Once the results for at least one trial are ready, go back to the PDE_DATA folder and run: `get_raw_data_P_u.py`.
+   Make sure to edit any necessary variable depending on the choice of parameters 
+   This generates the raw data needed to be processed by MATLAB to generate the plots.
+   This code is optimal when using more than one trial and more than one activation function.
+2. Run the MATLAB CODE -> `plot_P_u.m` on MATLAB.
+
+3. If everything worked the plots should be in the folder: P_u.
+
+ 
+===========================================================================================================================================
+## Folder: CODE_NSB\
+
+
+![ezgif com-animated-gif-maker(1)](https://github.com/Sebanthalas/MLSPDE/assets/21182719/8c1eaf75-19b4-4768-acc9-7fbbdc88c616)
+
+
+### Contains:
+- Folder      : meshes , run_out
+-- meshes: contain physical discretization meshes.
+-- run_out: folder that  will contain some outputs (FEM plots or slurm outputs for cluster use) of the code.
+- Python files: callbacks.py, FEM_parametric_PDE_example.py, sympy2fenics.py, TF_parametric_PDE_2FUN.py, PDE_data_NSB.py
+- Bash script : Nbatch_u.sh; Nbatch_p.sh
+
+### Functionality
+- Creates training sample points approximating (u,p) for the parametric Navier-Stokes-Brinkman (NSB) equations with mixed boundary conditions.
+- Creates testing points.
+- Trains points and tests a fully connected DNN approximating each desired solution of a stochastic PDE.
+- Outputs: A folder containing the raw data results and plots.
+
+
+## Fast Use (as it is) to approximate 12 trial of the velocity u:
+
+1. Ensure all necessary packages are installed and loaded.
+2. Run on a terminal: `bash Nbatch_u.sh`.
+   This generates a folder (if not exist) containing sample values for 500 training points, sample values for 1105 testing points for d=4 and 3937 for d=8, and the results of a 4,8-dimensional  4x40 or 10x100 elu,tanh,ReLU DNN architecture using m=[30,60,...,480] training points. 
+
+## Generate plots   
+1. Once the results for at least one trial are ready, go back to the PDE_DATA folder and run: `get_raw_data_NSB_u.py`.
+   Make sure to edit any necessary variable depending on the choice of parameters 
+   This generates the raw data needed to be processed by MATLAB to generate the plots.
+   This code is optimal when using more than one trial and more than one activation function.
+2. Run the MATLAB CODE -> `plot_NSB_u.m` on MATLAB.
+
+3. If everything worked the plots should be in the folder: NSB_u.
+
+## Follow similar steps for the pressure "p".
+
+
+===========================================================================================================================================
+## Folder: CODE_Boussinesq\
+### Contains:
+- Folder      : meshes ; run_out
+- Python files: callbacks.py, FEM_parametric_PDE_example.py, sympy2fenics.py, TF_parametric_PDE_2FUN.py, PDE_data_B.py
+- Bash script : Bbatch_phi.sh, Bbatch_u.sh, Bbatch_p.sh 
+
+
+### Functionality
+- Creates training sample points approximating (u,phi,p) for the parametric Boussinesq equations.
+- Creates testing points.
+- Trains points and tests a fully connected DNN approximating each desired solution of a stochastic PDE.
+- Outputs: A folder containing the raw data results.
+
+## Fast Use (as it is) to approximate 12 trial of the velocity u:
+
+1. Ensure all necessary packages are installed and loaded.
+2. Run on a terminal: `bash Bbatch_u.sh`.
+   This generates a folder (if not exist) containing sample values for 500 training points, sample values for 1105 testing points for d=4 and 849 for d=8, and the results of a 4,8-dimensional  4x40 or 10x100 elu,tanh,ReLU DNN architecture using m=[30,60,...,480] training points. 
+
+## Generate plots   
+1. Once the results for at least one trial are ready, go back to the PDE_DATA folder and run: `get_raw_data_Boussinesq_u.py`.
+   This generates the raw data needed to be processed by MATLAB to generate the plots.
+   This code is optimal when using more than one trial and more than one activation function.
+2. Run the MATLAB CODE -> `plot_Boussinesq_u.m` on MATLAB.
+
+3. If everything worked the plots should be in the folder: NSB_u.
+
+
+
+## Fast Use to approximate the temperature phi:
+
+1. Ensure all necessary packages are installed and loaded.
+2. Run on a terminal: `bash Bbatch_phi.sh`.
+   This generates a folder (if not exist) containing sample values for 500 training points, sample values for 1105 testing points for d=4 and 849 for d=8, and the results of a 4,8-dimensional  4x40 or 10x100 elu,tanh,ReLU DNN architecture using m=[30,60,...,480] training points. 
+
+## Generate plots   
+1. Once the results for at least one trial are ready, go back to the PDE_DATA folder and run: `get_raw_data_Boussinesq_phi.py`.
+   This generates the raw data needed to be processed by MATLAB to generate the plots.
+   This code is optimal when using more than one trial and more than one activation function.
+2. Run the MATLAB CODE -> `plot_Boussinesq_phi.m` on MATLAB.
+
+3. If everything worked the plots should be in the folder: NSB_phi.
+
+## Follow similar steps for the  pressure "p".
+
+===========================================================================================================================================
+# Explanation of each file (NSB case only, Boussinesq and Poisson is essentially the same)
+
+## Nbatch_u.sh (or Nbatch_u.sh)
+### Description
+This script is used to run locally/remotely and is the main code that sets parameters, passes them to other scripts, and executes a large loop that submits all the required jobs to the local machine or slurm batch system using "batch". It is structured as follows:
+
+### Usage
+- Lines 10-119: Set the parameters; choose which problem and function to approximate;
+- Lines 120-163: Initiate the main loops over 3 different affine coefficients; loop over dimensions (d=4,8);
+  - Declare how many total training points you will use (L-150) for the NSB;
+  - Declare the SG level for each problem and dimension.
+  
+**WARNING!**
+- Line 166: Set a loop over trials. This is only needed when you run locally, and you want to do one or more than one trial.
+
+- Lines 205-238: In case of training, pass the parameters to the Python code (locally). For each coefficient a(x,y), create the training points.
+- Lines 240-271: In case of testing, pass the parameters to the Python code (locally). For each coefficient a(x,y), create the testing points.
+- Lines 273-320: In case of DNN, pass the parameters to the Python code (locally). Train and test a fully connected DNN.
+
+##PDE_data_NSB.py
+### Description
+This script is used to generate the sample values, it solves the parametric NSB problem by using FEM for each sample.
+
+
+### Usage
+This is a script usable by FEM_parametric_PDE_example.py
+
+
+##PDE_data_NSB.py
+### Description
+Set up the training and testing folders, as well as the parameters for all the training and testing points. Later calls  PDE_data_NSB.py to generate the finite element coefficients and save them in a .m file to be used by TF_parametric_PDE_2FUN.py later.
+
+
+### Usage
+This is a script usable by Nbatch_u.sh (or Nbatch_u.sh).
+
+##TF_parametric_PDE_2FUN.py
+### Description
+Creates the result folder  and  load the sample values for training and testing. Set up the architecture of the DNN and run callbacks.py to generate the data by training the DNN.
+
+
+### Usage
+This is a script usable by Nbatch_u.sh (or Nbatch_u.sh).
+
+
+```
+===========================================================================================================================================
+HOW TO GENERATE FILES FOR PARAVIEW PLOTS - DNN PLOTS Boussinesq (similarly for NSB and Poisson)
+====================================================
+- Open the file called "callbacks.py"
+- Uncomment lines 132--137
+- This generates a file "Sol_8000000.vtu" which Paraview can read.
+- Then use Paraview to render the data as you like.
+
+INSTRUCTIONS TO RUN LOCALLY (FOR TESTING THE CODE)
+==================================================
+The code is ready to run locally "as it is" if you have the packages detailed below. However, this runs the entire experiments! (weeks of experiments).
+
+To run just a few to test the code, we suggest changing the following:
+- For example, in "Bbatch_u.sh" change line:
+
+91)  DNN_nb_trainingpts[0]="30"  to  DNN_nb_trainingpts[0]="5"
+123) for i in {1..2..1}          to  for i in {1..1..1}
+137) for d in {0..1..1}          to  for d in {0..0..1}
+150) declare  train_pts=1000     to  declare  train_pts=5
+152) declare  SG_level=5         to  declare  SG_level=1 
+163) for trialss in {1..8..1}    to  for trialss in {1..1..1}
+227) for l in {0..2..1}          to  for l in {0..0..1}
+229) for k in {0..2..1}          to  for k in {0..0..1}
+231) for j in {0..15..1}         to  for j in {0..0..1}
+
+This will generate 1 single trial for: training an elu-4x40DNN using 5 training points and 9 testing points with d=4 dimensions.
 
 Packages:
 ---------------------------------------------
-tensorflow                   2.14.0  or (2.12 CEDAR using CUDA)
+- tensorflow                   2.12  
+- fenics-dijitso               2019.2.0.dev0
+- fenics-dolfin                2019.2.0.dev0
+- fenics-ffc                   2019.2.0.dev0
+- fenics-fiat                  2019.2.0.dev0
+- TASMANIAN                    7.3
+```
 
-fenics-dijitso               2019.2.0.dev0
-
-fenics-dolfin                2019.2.0.dev0
-
-fenics-ffc                   2019.2.0.dev0
-
-fenics-fiat                  2019.2.0.dev0
-
-TASMANIAN                    7.3
-
-Examples:
-Poisson
---------------------------------------------------
-![ezgif com-animated-gif-maker](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/248738b8-638d-4380-918e-9ce015b668c5)
-
-
-NSB
------------------------------------------------------
-![nonlinear_uh9](https://github.com/Sebanthalas/parametric_PDE_approx_viaDNN/assets/21182719/689a6767-1b97-449e-877c-1ebdf47712d3)
+Once TASMANIAN is installed, the path in pathdef.m should be modified accordingly on line 16:      ''/path_to_TASMANIAN/TASMANIAN/InterfaceMATLAB:', ...'
